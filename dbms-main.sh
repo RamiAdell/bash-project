@@ -4,7 +4,7 @@ shopt -s extglob
 # current selected database
 CURRENT_DB=""
 # current base directory for databases
-BASE_DIR="./databases"
+BASE_DIR="./Databases"
 
 initialize_application() {
     if [ ! -d "$BASE_DIR" ]; then
@@ -19,7 +19,12 @@ function createDB(){
     echo hello from createDB
 }
 function listDB(){
-    echo hello from createDB
+    if [[ `ls -A $BASE_DIR` ]]
+    then 
+        echo Available databases: `ls $BASE_DIR`
+    else
+        echo No available databases 
+    fi
 }
 function connectDB(){   
     echo hello from createDB
