@@ -14,7 +14,15 @@ function connectDB(){
     echo hello from createDB
 }
 function dropDB(){
-    echo hello from createDB
+    read -p "Enter the Database you want to delete: " dbName
+
+    if [[ -d ./Databases/$dbName ]]
+    then
+        rm -rf ./Databases/$dbName
+        echo "Database $dbName is deleted successfully."
+    else
+        echo There are no database with the name $dbName
+    fi
 }
 
 
