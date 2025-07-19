@@ -6,6 +6,12 @@ CURRENT_DB=""
 # current base directory for databases
 BASE_DIR="./databases"
 
+initialize_application() {
+    if [ ! -d "$BASE_DIR" ]; then
+        mkdir -p "$BASE_DIR"
+    fi
+}
+
 options=("Create Database" "List Databases" "Connect to Databases" "Drop Dataase" "Exit")
 
 
@@ -49,7 +55,7 @@ function print_DBmenu(){
     done   
 }
 
-
+initialize_application
 print_DBmenu
 
 
