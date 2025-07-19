@@ -1,8 +1,13 @@
 #!/bin/bash
 
 shopt -s extglob
+# current selected database
+CURRENT_DB=""
+# current base directory for databases
+BASE_DIR="./databases"
 
 options=("Create Database" "List Databases" "Connect to Databases" "Drop Dataase" "Exit")
+
 
 function createDB(){
     echo hello from createDB
