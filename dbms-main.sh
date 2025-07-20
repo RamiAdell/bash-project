@@ -2,13 +2,13 @@
 
 shopt -s extglob
 # current selected database
-CurrentDB=""
+currentDB=""
 # current base directory for databases
-BaseDir="./Databases"
+baseDir="./Databases"
 
 initialize_application() {
-    if [ ! -d "$BaseDir" ]; then
-        mkdir -p "$BaseDir"
+    if [ ! -d "$baseDir" ]; then
+        mkdir -p "$baseDir"
     fi
 }
 
@@ -19,80 +19,136 @@ function createDB(){
 
 while true; do
 
-read -p "Enter database name: " DBName
+read -p "Enter database name: " dbName
 
-if [ -d "$BaseDir/$DBName" ]; then
-    echo "Database '$DBName' already exists. Please choose another name."
+if [ -d "$baseDir/$dbName" ]; then
+    echo "Database '$dbName' already exists. Please choose another name."
     continue
 fi
 
-if [ -z "$DBName" ]; then
+if [ -z "$dbName" ]; then
     echo "Database name cannot be empty. Please try again."
     continue
 fi
 
-if [[ ! "$DBName" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+if [[ ! "$dbName" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
     echo "Database Must start with a letter or underscore and contain only letters, digits, or underscores."
     continue
 fi
 
 
-mkdir -p "$BaseDir/$DBName"
+mkdir -p "$baseDir/$dbName"
 clear
-echo "Database name '$DBName' is Created."
+echo "Database name '$dbName' is Created."
 break
 done
 
 }
 
 function listDB(){
-    if [[ `ls -A $BASE_DIR` ]]
+    if [[ `ls -A $baseDir` ]]
     then 
-        echo Available databases: `ls $BASE_DIR`
+        echo Available databases: `ls $baseDir`
     else
         echo No available databases 
     fi
 }
 function connectDB(){   
-    echo hello from createDB
+    clear
+
+    echo "DATABASE SELECTION"
+
+    dbList=""
+    dbCount=0
+    
+    if [ -d "$baseDir" ]; then
+        for db in `$baseDir/*`; do
+            if [ -d "$db" ]; then
+                dbCount=$((dbCount + 1))
+                dbName=$(basename "$db")
+                echo "$dbCount. $dbName"
+                if [ -z "$dbList" ]; then
+                    dbList="$dbName"
+                else
+                    dbList="$dbList $dbName"
+                fi
+            fi
+        done
+    fi
+    
+    if [ $dbCount -eq 0 ]; then
+        echo "No databases"
+    fi
+    
+
+    read -p "Enter database number to select, or 'new' to create new database: " choice 
+    
+    if [ "$choice" = "new" ]; then
+        createDB
+    else        
+        dbArray=($dbList)
+
+        if [ "$choice" -ge 1 ] && [ "$choice" -le $dbCount ]; then
+            currentDB="${dbArray[$((choice-1))]}"
+            clear
+            echo "Database '$currentDB' selected"
+        else
+            echo "Invalid selection"
+        fi
+    fi
+
 }
+
+
 function dropDB(){
+    while true; do
     read -p "Enter the Database you want to delete: " dbName
 
-    if [[ -d  "$BaseDir/$dbName" ]]
+    if [[ -d  "$baseDir/$dbName" ]]
     then
-        rm -rf $BaseDir/$dbName
+        rm -rf $baseDir/$dbName
         echo "Database $dbName is deleted successfully."
+        break
     else
         echo There are no database with the name $dbName
     fi
+    done
 }
 
 
 function print_DBmenu(){
+    
+    while true; do
     PS3="Enter a valid number to proceed: "
-    select option in "${options[@]}"
-    do 
-        case $REPLY in 
-        1)
-            createDB 
-            ;;
-        2)
-            listDB
-            ;;
-        3) 
-            connectDB
-            ;;
-        4)
-            dropDB
-            ;;
-        5)
-            exit
-            ;;
-        *)
-            echo Enter a number from 1 to 5 to continue
-        esac
-    done   
+        select option in "${options[@]}"
+        do 
+            case $REPLY in 
+            1)
+                createDB 
+                break
+                ;;
+            2)
+                listDB
+                break
+                ;;
+            3) 
+                connectDB
+                break
+                ;;
+            4)
+                dropDB
+                break
+                ;;
+            5)
+                exitd
+                ;;
+            *)
+                echo Enter a number from 1 to 5 to continue
+                break
+                ;;
+            esac
+        done   
+    done
 }
 
 initialize_application
