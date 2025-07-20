@@ -57,56 +57,56 @@ function connectDB(){
 clear
 while true; do
 
-dbList=()
-dbCount=0
+    dbList=()
+    dbCount=0
 
-if [ -d "$baseDir" ]; then
-    echo "Available Databases:"
-    for db in "$baseDir"/*; do
-        if [ -d "$db" ]; then
-            dbCount=$((dbCount + 1))
-            dbName=$(basename "$db")
-            echo "$dbCount. $dbName"
-            dbList+=("$dbName")
+    if [ -d "$baseDir" ]; then
+        echo "Available Databases:"
+        for db in "$baseDir"/*; do
+            if [ -d "$db" ]; then
+                dbCount=$((dbCount + 1))
+                dbName=$(basename "$db")
+                echo "$dbCount. $dbName"
+                dbList+=("$dbName")
+            fi
+        done
+
+        if [ ${#dbList[@]} -eq 0 ]; then
+            echo "No databases found"
+            break
         fi
-    done
 
-    if [ ${#dbList[@]} -eq 0 ]; then
-        echo "No databases found"
-        break
-    fi
+        read -p "Enter database number to select or 'new' to create new database: " choice
+        if [[ "$choice"="new" ]]; then
+        createDB
+        continue
+        fi
 
-    read -p "Enter database number to select or 'new' to create new database: " choice
-    if [[ "$choice"="new" ]]; then
-    createDB
-    continue
-    fi
+        if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#dbList[@]}" ]; then
+            index=$((choice-1))
+            selectedDB="${dbList[$index]}"
+            clear
+            # will put here list of database openrations
+            echo "You selected: $selectedDB"
+        else
+            echo "Invalid selection."
+            
+        fi
 
-    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#dbList[@]}" ]; then
-        index=$((choice-1))
-        selectedDB="${dbList[$index]}"
-        clear
-        # will put here list of database openrations
-        echo "You selected: $selectedDB"
     else
-        echo "Invalid selection."
-        
+        echo "Error: Directory '$baseDir' does not exist."
+        exit 1
     fi
 
-else
-    echo "Error: Directory '$baseDir' does not exist."
-    exit 1
-fi
-
-done
+    done
 }
 
 
 function dropDB(){
     PS3="Enter the DB number to drop: "
-    dbList=("$BaseDir"/*)
+    dbList=("$baseDir"/*)
     if [[ ${#dbList[@]} -eq 0 ]]; then
-        echo "No databases found in $BaseDir"
+        echo "No databases found in $baseDir"
         return
     fi
     dbNames=()
@@ -135,7 +135,7 @@ function dropDB(){
                 read -p "Are you sure you want to delete '$dbName'? [y/N]: " confirm
                 if [[ "$confirm" =~ ^[Yy]$ ]]
                 then
-                    rm -rf "$BaseDir/$dbName"
+                    rm -rf "$baseDir/$dbName"
                     echo "Database '$dbName' deleted successfully."
                 else
                     echo "Deletion cancelled."
@@ -146,19 +146,6 @@ function dropDB(){
             fi
         done
 
-    done
-    
-    while true; do
-    read -p "Enter the Database you want to delete: " dbName
-
-    if [[ -d  "$baseDir/$dbName" ]]
-    then
-        rm -rf $baseDir/$dbName
-        echo "Database $dbName is deleted successfully."
-        break
-    else
-        echo There are no database with the name $dbName
-    fi
     done
 }
 
