@@ -77,7 +77,7 @@ while true; do
         fi
 
         read -p "Enter database number to select or 'new' to create new database: " choice
-        if [[ "$choice"="new" ]]; then
+        if [[ "$choice" = "new" ]]; then
         createDB
         continue
         fi
@@ -88,6 +88,7 @@ while true; do
             clear
             # will put here list of database openrations
             echo "You selected: $selectedDB"
+            # break
         else
             echo "Invalid selection."
             
