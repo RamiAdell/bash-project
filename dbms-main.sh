@@ -4,7 +4,7 @@ shopt -s extglob
 # current selected database
 CurrentDB=""
 # current base directory for databases
-BaseDir="./databases"
+BaseDir="./Databases"
 
 initialize_application() {
     if [ ! -d "$BaseDir" ]; then
@@ -21,7 +21,7 @@ while true; do
 
 read -p "Enter database name: " DBName
 
-if [ -d "databases/$DBName" ]; then
+if [ -d "$BaseDir/$DBName" ]; then
     echo "Database '$DBName' already exists. Please choose another name."
     continue
 fi
@@ -59,9 +59,9 @@ function connectDB(){
 function dropDB(){
     read -p "Enter the Database you want to delete: " dbName
 
-    if [[ -d ./Databases/$dbName ]]
+    if [[ -d  "$BaseDir/$dbName" ]]
     then
-        rm -rf ./Databases/$dbName
+        rm -rf $BaseDir/$dbName
         echo "Database $dbName is deleted successfully."
     else
         echo There are no database with the name $dbName
