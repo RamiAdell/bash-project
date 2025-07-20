@@ -53,50 +53,52 @@ function listDB(){
         echo No available databases 
     fi
 }
-function connectDB(){   
-    clear
+function connectDB(){
+clear
+while true; do
 
-    echo "DATABASE SELECTION"
+dbList=()
+dbCount=0
 
-    dbList=""
-    dbCount=0
-    
-    if [ -d "$baseDir" ]; then
-        for db in `$baseDir/*`; do
-            if [ -d "$db" ]; then
-                dbCount=$((dbCount + 1))
-                dbName=$(basename "$db")
-                echo "$dbCount. $dbName"
-                if [ -z "$dbList" ]; then
-                    dbList="$dbName"
-                else
-                    dbList="$dbList $dbName"
-                fi
-            fi
-        done
-    fi
-    
-    if [ $dbCount -eq 0 ]; then
-        echo "No databases"
-    fi
-    
-
-    read -p "Enter database number to select, or 'new' to create new database: " choice 
-    
-    if [ "$choice" = "new" ]; then
-        createDB
-    else        
-        dbArray=($dbList)
-
-        if [ "$choice" -ge 1 ] && [ "$choice" -le $dbCount ]; then
-            currentDB="${dbArray[$((choice-1))]}"
-            clear
-            echo "Database '$currentDB' selected"
-        else
-            echo "Invalid selection"
+if [ -d "$baseDir" ]; then
+    echo "Available Databases:"
+    for db in "$baseDir"/*; do
+        if [ -d "$db" ]; then
+            dbCount=$((dbCount + 1))
+            dbName=$(basename "$db")
+            echo "$dbCount. $dbName"
+            dbList+=("$dbName")
         fi
+    done
+
+    if [ ${#dbList[@]} -eq 0 ]; then
+        echo "No databases found"
+        break
     fi
 
+    read -p "Enter database number to select or 'new' to create new database: " choice
+    if [[ "$choice"="new" ]]; then
+    createDB
+    continue
+    fi
+
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#dbList[@]}" ]; then
+        index=$((choice-1))
+        selectedDB="${dbList[$index]}"
+        clear
+        # will put here list of database openrations
+        echo "You selected: $selectedDB"
+    else
+        echo "Invalid selection."
+        
+    fi
+
+else
+    echo "Error: Directory '$baseDir' does not exist."
+    exit 1
+fi
+
+done
 }
 
 
@@ -119,6 +121,8 @@ function dropDB(){
 function print_DBmenu(){
     
     while true; do
+    echo ""
+    echo "Main Menu:"
     PS3="Enter a valid number to proceed: "
         select option in "${options[@]}"
         do 
