@@ -4,11 +4,7 @@ shopt -s extglob
 # current selected database
 CurrentDB=""
 # current base directory for databases
-<<<<<<< HEAD
 BaseDir="./databases"
-=======
-BASE_DIR="./Databases"
->>>>>>> 4ea3b6e3d894f2b10e58f8032588f6a9e446beb3
 
 initialize_application() {
     if [ ! -d "$BaseDir" ]; then
