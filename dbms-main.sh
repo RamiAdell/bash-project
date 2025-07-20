@@ -2,22 +2,49 @@
 
 shopt -s extglob
 # current selected database
-CURRENT_DB=""
+CurrentDB=""
 # current base directory for databases
-BASE_DIR="./databases"
+BaseDir="./databases"
 
 initialize_application() {
-    if [ ! -d "$BASE_DIR" ]; then
-        mkdir -p "$BASE_DIR"
+    if [ ! -d "$BaseDir" ]; then
+        mkdir -p "$BaseDir"
     fi
 }
 
-options=("Create Database" "List Databases" "Connect to Databases" "Drop Dataase" "Exit")
+options=("Create Database" "List Databases" "Connect to Databases" "Drop Database" "Exit")
 
 
 function createDB(){
-    echo hello from createDB
+
+while true; do
+
+read -p "Enter database name: " DBName
+
+if [ -d "databases/$DBName" ]; then
+    echo "Database '$DBName' already exists. Please choose another name."
+    continue
+fi
+
+if [ -z "$DBName" ]; then
+    echo "Database name cannot be empty. Please try again."
+    continue
+fi
+
+if [[ ! "$DBName" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+    echo "Database Must start with a letter or underscore and contain only letters, digits, or underscores."
+    continue
+fi
+
+
+mkdir -p "$BaseDir/$DBName"
+clear
+echo "Database name '$DBName' is Created."
+break
+done
+
 }
+
 function listDB(){
     echo hello from createDB
 }
