@@ -12,36 +12,36 @@ initialize_application() {
     fi
 }
 
-options=("Create Database" "List Databases" "Connect to Databases" "Drop Database" "Exit")
-
+dbOptions=("Create Database" "List Databases" "Connect to Databases" "Drop Database" "Exit")
+tableOptions=("Create Table" "Insert Data" "Update Data" "Delete Data" "Show Table Data" "List Tables" "Drop Table" "Back to Main Menu")
 
 function createDB(){
 
-while true; do
+    while true; do
 
-read -p "Enter database name: " dbName
+    read -p "Enter database name: " dbName
 
-if [ -d "$baseDir/$dbName" ]; then
-    echo "Database '$dbName' already exists. Please choose another name."
-    continue
-fi
+    if [ -d "$baseDir/$dbName" ]; then
+        echo "Database '$dbName' already exists. Please choose another name."
+        continue
+    fi
 
-if [ -z "$dbName" ]; then
-    echo "Database name cannot be empty. Please try again."
-    continue
-fi
+    if [ -z "$dbName" ]; then
+        echo "Database name cannot be empty. Please try again."
+        continue
+    fi
 
-if [[ ! "$dbName" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
-    echo "Database Must start with a letter or underscore and contain only letters, digits, or underscores."
-    continue
-fi
+    if [[ ! "$dbName" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+        echo "Database Must start with a letter or underscore and contain only letters, digits, or underscores."
+        continue
+    fi
 
 
-mkdir -p "$baseDir/$dbName"
-clear
-echo "Database name '$dbName' is Created."
-break
-done
+    mkdir -p "$baseDir/$dbName"
+    clear
+    echo "Database name '$dbName' is Created."
+    break
+    done
 
 }
 
@@ -53,9 +53,11 @@ function listDB(){
         echo No available databases 
     fi
 }
+
 function connectDB(){
-clear
-while true; do
+
+    clear
+    while true; do
 
     dbList=()
     dbCount=0
@@ -86,9 +88,9 @@ while true; do
             index=$((choice-1))
             selectedDB="${dbList[$index]}"
             clear
-            # will put here list of database openrations
-            echo "You selected: $selectedDB"
-            # break
+            printTableMenu
+            return
+            
         else
             echo "Invalid selection."
             
@@ -101,7 +103,6 @@ while true; do
 
     done
 }
-
 
 function dropDB(){
     PS3="Enter the DB number to drop: "
@@ -151,14 +152,13 @@ function dropDB(){
     done
 }
 
-
 function print_DBmenu(){
     
     while true; do
     echo ""
     echo "Main Menu:"
     PS3="Enter a valid number to proceed: "
-        select option in "${options[@]}"
+        select option in "${dbOptions[@]}"
         do 
             case $REPLY in 
             1)
@@ -182,6 +182,58 @@ function print_DBmenu(){
                 ;;
             *)
                 echo Enter a number from 1 to 5 to continue
+                break
+                ;;
+            esac
+        done   
+    done
+}
+
+function printTableMenu(){
+    
+    while true; do
+    echo ""
+    echo "Selected Database : $selectedDB"
+    echo ""
+    echo "Operations Menu:"
+    PS3="Enter a valid number to proceed: "
+        select option in "${tableOptions[@]}"
+        do 
+            case $REPLY in 
+            1)
+                createTable
+                break
+                ;;
+            2)
+                insertInTable
+                break
+                ;;
+            3) 
+                updateInTable
+                break
+                ;;
+            4)
+                deleteInTable
+                break
+                ;;
+            5)
+                showTableData
+                break
+                ;;
+            6)
+                listTables
+                break
+                ;;
+            7)
+                dropTable
+                break
+               ;;
+            8)
+                clear
+                return
+                ;;
+            *)
+                echo Enter a number from 1 to 8 to continue
                 break
                 ;;
             esac
