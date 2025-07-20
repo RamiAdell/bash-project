@@ -104,29 +104,30 @@ while true; do
 
 function dropDB(){
     PS3="Enter the DB number to drop: "
-    dbList=("$baseDir"/*)
-    if [[ ${#dbList[@]} -eq 0 ]]; then
-        echo "No databases found in $baseDir"
-        return
-    fi
-    dbNames=()
-    for db in "${dbList[@]}"
-    do 
-        if [[ -d $db ]] 
-        then  
-            dbName=`basename $db`
-            dbNames+=("$dbName")
-        fi 
-    done
-
-    dbNames+=("--Exit from Drop Menu--")
-
     while true
     do 
+        dbList=("$baseDir"/*)
+        dbNames=()
+        for db in "${dbList[@]}"
+        do 
+            if [[ -d $db ]] 
+            then  
+                dbName=`basename $db`
+                dbNames+=("$dbName")
+            fi 
+        done
+        if [[ ${#dbNames[@]} -eq 0 ]]; then
+            echo "No databases found in $baseDir"
+            echo "Exiting...."
+          return
+        fi
+
+        dbNames+=("--Exit from Drop Menu--")
+       
         select dbName in "${dbNames[@]}"
         do
             if [[ "$REPLY" -eq "${#dbNames[@]}" ]]
-            then 
+            then
                 echo Exiting....
                 PS3="Enter a valid number to proceed: "
                 return 
@@ -176,7 +177,7 @@ function print_DBmenu(){
                 break
                 ;;
             5)
-                exitd
+                exit
                 ;;
             *)
                 echo Enter a number from 1 to 5 to continue
