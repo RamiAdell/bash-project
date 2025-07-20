@@ -103,6 +103,51 @@ done
 
 
 function dropDB(){
+    PS3="Enter the DB number to drop: "
+    dbList=("$BaseDir"/*)
+    if [[ ${#dbList[@]} -eq 0 ]]; then
+        echo "No databases found in $BaseDir"
+        return
+    fi
+    dbNames=()
+    for db in "${dbList[@]}"
+    do 
+        if [[ -d $db ]] 
+        then  
+            dbName=`basename $db`
+            dbNames+=("$dbName")
+        fi 
+    done
+
+    dbNames+=("--Exit from Drop Menu--")
+
+    while true
+    do 
+        select dbName in "${dbNames[@]}"
+        do
+            if [[ "$REPLY" -eq "${#dbNames[@]}" ]]
+            then 
+                echo Exiting....
+                PS3="Enter a valid number to proceed: "
+                return 
+            fi
+            if [[ -n "$dbName" ]]; then
+                read -p "Are you sure you want to delete '$dbName'? [y/N]: " confirm
+                if [[ "$confirm" =~ ^[Yy]$ ]]
+                then
+                    rm -rf "$BaseDir/$dbName"
+                    echo "Database '$dbName' deleted successfully."
+                else
+                    echo "Deletion cancelled."
+                fi
+                break
+            else
+                echo "Invalid choice. Try again."
+            fi
+        done
+
+    done
+    
     while true; do
     read -p "Enter the Database you want to delete: " dbName
 
