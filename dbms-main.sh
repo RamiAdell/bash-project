@@ -4,7 +4,11 @@ shopt -s extglob
 # current selected database
 CurrentDB=""
 # current base directory for databases
+<<<<<<< HEAD
 BaseDir="./databases"
+=======
+BASE_DIR="./Databases"
+>>>>>>> 4ea3b6e3d894f2b10e58f8032588f6a9e446beb3
 
 initialize_application() {
     if [ ! -d "$BaseDir" ]; then
@@ -46,13 +50,26 @@ done
 }
 
 function listDB(){
-    echo hello from createDB
+    if [[ `ls -A $BASE_DIR` ]]
+    then 
+        echo Available databases: `ls $BASE_DIR`
+    else
+        echo No available databases 
+    fi
 }
 function connectDB(){   
     echo hello from createDB
 }
 function dropDB(){
-    echo hello from createDB
+    read -p "Enter the Database you want to delete: " dbName
+
+    if [[ -d ./Databases/$dbName ]]
+    then
+        rm -rf ./Databases/$dbName
+        echo "Database $dbName is deleted successfully."
+    else
+        echo There are no database with the name $dbName
+    fi
 }
 
 
