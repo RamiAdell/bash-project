@@ -1,6 +1,8 @@
 #!/bin/bash
 
 shopt -s extglob
+
+source ./dbms-tables.sh
 # current selected database
 currentDB=""
 # current base directory for databases
@@ -124,7 +126,7 @@ function dropDB(){
           return
         fi
 
-        dbNames+=("--Exit from Drop Menu--")
+        dbNames+=("--Back to Main Menu--")
        
         select dbName in "${dbNames[@]}"
         do
@@ -201,7 +203,7 @@ function printTableMenu(){
         do 
             case $REPLY in 
             1)
-                createTable
+                createTable "$selectedDB"
                 break
                 ;;
             2)
