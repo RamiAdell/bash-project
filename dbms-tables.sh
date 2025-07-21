@@ -58,7 +58,7 @@ function createTable(){
             read -p "Do you want to make this column as a primary key? [y/N]: " confirm
             if [[ "$confirm" =~ ^[Yy]$ ]]
             then
-                pkColumn="PK"
+                pkColumn="pk"
                 pkFlag=0
             fi
         else
