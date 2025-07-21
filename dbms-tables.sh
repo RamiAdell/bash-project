@@ -34,7 +34,7 @@ function createTable(){
             break
         fi 
     done
-    touch "$baseDir/$selectedDB/$tableName" "$baseDir/$selectedDB/.${tableName}-metadata"
+    touch "$baseDir/$selectedDB/$tableName" 
     
     pkFlag=1
     
@@ -64,7 +64,7 @@ function createTable(){
         else
             pkColumn=""
         fi 
-        echo "$columnName:$colDataType:$pkColumn" >> "$baseDir/$selectedDB/$tableName"
+        echo "$columnName:$colDataType:$pkColumn" >> "$baseDir/$selectedDB/.${tableName}-metadata"
     done
 
 }
