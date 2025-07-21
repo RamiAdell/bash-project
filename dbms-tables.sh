@@ -112,3 +112,13 @@ function readColumnName(){
         fi 
     done
 }
+
+function listTables(){
+    selectedDB=$1
+    if [[ `ls -A $baseDir/$selectedDB` ]]
+    then 
+        echo "Available tables in database "$selectedDB": " `ls -p $baseDir/$selectedDB | grep -v /`
+    else
+        echo "No available tables in database "$selectedDB". "
+    fi 
+}
