@@ -4,6 +4,7 @@ shopt -s extglob
 
 source ./dbms-tables.sh
 source ./dbms-tables-insertion.sh
+
 # current selected database
 currentDB=""
 # current base directory for databases
@@ -208,10 +209,10 @@ function printTableMenu(){
                 break
                 ;;
             2)
-                insertInTable "$selectedDB"
+                insertInTable
                 break
                 ;;
-            3) 
+            3)
                 updateInTable
                 break
                 ;;
