@@ -7,7 +7,6 @@ baseDir="./Databases"
 
 function createTable(){
     clear
-    selectedDB=$1
     dataTypes=("int" "float" "character" "string" "email" )
     while true
     do 
@@ -35,7 +34,6 @@ function createTable(){
             break
         fi 
     done
-    touch "$baseDir/$selectedDB/$tableName" 
     
     pkFlag=1
     
@@ -66,6 +64,7 @@ function createTable(){
             pkColumn=""
         fi 
         echo "$columnName:$colDataType:$pkColumn" >> "$baseDir/$selectedDB/.${tableName}-metadata"
+        touch "$baseDir/$selectedDB/$tableName" 
     done
     clear
     echo "Table '$tableName' created successfully in database '$selectedDB'."
@@ -97,7 +96,7 @@ function readColumnName(){
     do 
         read -p "Enter the column $((colIdx+1)) name: " columnName
         echo ""
-        if cut -d ':' -f1 "$baseDir/$selectedDB/$tableName" | grep -xq "$columnName" 
+        if cut -d ':' -f1 "$baseDir/$selectedDB/.${tableName}-metadata" | grep -xq "$columnName" 
         then
             echo "Column $columnName already exists. Please choose another name."
             continue
@@ -117,11 +116,64 @@ function readColumnName(){
 }
 
 function listTables(){
-    selectedDB=$1
-    if [[ `ls -A $baseDir/$selectedDB` ]]
-    then 
-        echo "Available tables in database "$selectedDB": " `ls -p $baseDir/$selectedDB | grep -v /`
+    tableNames=()
+    for table in "$baseDir/$selectedDB"/*; do
+        [[ -f "$table" ]] && tableNames+=("$(basename "$table")")
+    done
+
+    if [[ ${#tableNames[@]} -eq 0 ]]; then
+        echo "No available tables"
     else
-        echo "No available tables in database "$selectedDB". "
-    fi 
+        echo ""
+        echo Available Tables: 
+        echo "${tableNames[*]}" | sed 's/ /, /g'
+    fi
+}
+
+function dropTable(){
+    PS3="Enter the Table number to drop: "
+    while true
+    do 
+        tableList=("$baseDir/$selectedDB"/*)
+        tableNames=()
+        for table in "${tableList[@]}"
+        do 
+            if [[ -f $table ]] 
+            then  
+                tableName=`basename $table`
+                tableNames+=("$tableName")
+            fi 
+        done
+        if [[ ${#tableNames[@]} -eq 0 ]]; then
+            echo "No tables found in database $selectedDB"
+            echo "Exiting...."
+          return
+        fi
+
+        tableNames+=("--Back to table operations Menu--")
+       
+        select tableName in "${tableNames[@]}"
+        do
+            if [[ "$REPLY" -eq "${#tableNames[@]}" ]]
+            then
+                echo Exiting....
+                PS3="Enter a valid number to proceed: "
+                return 
+            fi
+            if [[ -n "$tableName" ]]; then
+                read -p "Are you sure you want to delete '$tableName'? [y/N]: " confirm
+                if [[ "$confirm" =~ ^[Yy]$ ]]
+                then
+                    rm -rf "$baseDir/$selectedDB/$tableName" "$baseDir/$selectedDB/.${tableName}-metadata"
+                    echo "Tabel '$tableName' deleted successfully."
+                else
+                    echo "Deletion cancelled."
+                fi
+                break
+            else
+                echo "Invalid choice. Try again."
+            fi
+        done
+
+    done
 }

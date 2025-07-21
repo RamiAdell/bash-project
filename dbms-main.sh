@@ -49,11 +49,17 @@ function createDB(){
 }
 
 function listDB(){
-    if [[ `ls -A $baseDir` ]]
-    then 
-        echo Available databases: `ls $baseDir`
+    dbNames=()
+    for db in "$baseDir"/*; do
+        [[ -d "$db" ]] && dbNames+=("$(basename "$db")")
+    done
+
+    if [[ ${#dbNames[@]} -eq 0 ]]; then
+        echo "No available databases"
     else
-        echo No available databases 
+        echo ""
+        echo Available Databases: 
+        echo "${dbNames[*]}" | sed 's/ /, /g'
     fi
 }
 
@@ -204,7 +210,7 @@ function printTableMenu(){
         do 
             case $REPLY in 
             1)
-                createTable "$selectedDB"
+                createTable 
                 break
                 ;;
             2)
@@ -224,7 +230,7 @@ function printTableMenu(){
                 break
                 ;;
             6)
-                listTables
+                listTables 
                 break
                 ;;
             7)
