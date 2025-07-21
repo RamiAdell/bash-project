@@ -6,6 +6,7 @@ baseDir="./Databases"
 
 
 function createTable(){
+    clear
     selectedDB=$1
     dataTypes=("int" "float" "character" "string" "email" )
     while true
@@ -66,6 +67,8 @@ function createTable(){
         fi 
         echo "$columnName:$colDataType:$pkColumn" >> "$baseDir/$selectedDB/.${tableName}-metadata"
     done
+    clear
+    echo "Table '$tableName' created successfully in database '$selectedDB'."
 
 }
 

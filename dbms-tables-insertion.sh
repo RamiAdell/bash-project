@@ -4,24 +4,26 @@ insertInTable() {
     currentDB="$1"
     clear
     echo "INSERT DATA"
+    echo ""
 
     # will add options to select database with select menu
     echo "Available Tables:"
-    ls "$baseDir/$currentDB/" | grep -v '^\.' || { echo "No tables found"; return; }
+    ls "$baseDir/$currentDB/" | grep -v '^\.' || { clear; echo "No tables found"; return; }
 
     read -p "Enter table name: " selectedTable
 
     metaDataFile="$baseDir/$currentDB/.$selectedTable-metadata"
     dataFile="$baseDir/$currentDB/$selectedTable"
-
+    if [ ! -f "$dataFile" ]; then
+        clear
+        echo "Table '$selectedTable' not found."
+        return
+    fi
     if [ ! -f "$metaDataFile" ]; then
         echo "Metadata for table '$selectedTable' not found."
         return
     fi
-    if [ ! -f "$dataFile" ]; then
-        echo "Datafile for table '$selectedTable' not found."
-        return
-    fi
+
 
     columnArray=()
     typeArray=()
@@ -41,7 +43,9 @@ insertInTable() {
     done < "$metaDataFile"
 
     rowToAdd=""
-
+    clear
+    echo "Inserting data into table '$selectedTable' in database '$currentDB'."
+    echo ""
     for ((j=0; j<${#columnArray[@]}; j++)); do
         colName="${columnArray[j]}"
         colType="${typeArray[j]}"
@@ -74,7 +78,9 @@ insertInTable() {
     done
 
     echo "$rowToAdd" >> "$dataFile"
-    echo "Data inserted successfully"
+    clear
+    echo "Data inserted successfully into table '$selectedTable'."
+
 }
 
 
