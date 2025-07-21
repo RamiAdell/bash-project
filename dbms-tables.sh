@@ -130,32 +130,35 @@ function listTables(){
     fi
 }
 
+function listTablesPreProcess(){
+    tableList=("$baseDir/$selectedDB"/*)
+    tableNames=()
+    for table in "${tableList[@]}"
+    do 
+        if [[ -f $table ]] 
+        then  
+            tableName=`basename $table`
+            tableNames+=("$tableName")
+        fi 
+    done
+    if [[ ${#tableNames[@]} -eq 0 ]]; then
+        echo "No tables found in database $selectedDB"
+        echo "Exiting...."
+        return
+    fi
+
+    tableNames+=("--Back to table operations Menu--")
+}
 function dropTable(){
     PS3="Enter the Table number to drop: "
     while true
     do 
-        tableList=("$baseDir/$selectedDB"/*)
-        tableNames=()
-        for table in "${tableList[@]}"
-        do 
-            if [[ -f $table ]] 
-            then  
-                tableName=`basename $table`
-                tableNames+=("$tableName")
-            fi 
-        done
-        if [[ ${#tableNames[@]} -eq 0 ]]; then
-            echo "No tables found in database $selectedDB"
-            echo "Exiting...."
-          return
-        fi
-
-        tableNames+=("--Back to table operations Menu--")
-       
+        listTablesPreProcess
         select tableName in "${tableNames[@]}"
         do
             if [[ "$REPLY" -eq "${#tableNames[@]}" ]]
             then
+                echo No tables found in database $selectedDB
                 echo Exiting....
                 PS3="Enter a valid number to proceed: "
                 return 
@@ -176,4 +179,68 @@ function dropTable(){
         done
 
     done
+}
+
+function deleteInTable(){
+    while true
+    do 
+        select choice in "Delete all table?" "Delete from table?" "--Back to table operations Menu--"
+        do 
+            case $REPLY in 
+            1)
+                deleteAllTable
+                break
+                ;;
+            2)
+                deleteFromTable
+                break
+                ;;
+            3)
+                return 
+                ;;
+            *)
+                echo Invalid choice.
+                ;;
+            esac
+        done 
+
+    done 
+}
+
+function deleteAllTable(){
+    listTablesPreProcess
+    PS3="Enter the Table number to delete: "
+    while true
+    do 
+        listTablesPreProcess
+        select tableName in "${tableNames[@]}"
+        do
+            if [[ "$REPLY" -eq "${#tableNames[@]}" ]]
+            then
+                echo No tables found in database $selectedDB
+                echo Exiting....
+                PS3="Enter a valid number to proceed: "
+                return 
+            fi
+            if [[ -n "$tableName" ]]; then
+                read -p "Are you sure you want to delete '$tableName'? [y/N]: " confirm
+                if [[ "$confirm" =~ ^[Yy]$ ]]
+                then
+                    echo "" > "$baseDir/$selectedDB/$tableName"
+                    echo "Tabel '$tableName' content deleted successfully."
+                else
+                    echo "Deletion cancelled."
+                fi
+                break
+            else
+                echo "Invalid choice. Try again."
+            fi
+        done
+        break
+    done
+
+}
+
+function deleteFromTable(){
+    
 }
