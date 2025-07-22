@@ -2,13 +2,15 @@
 
 shopt -s extglob
 
-source ./dbms-tables.sh
-source ./dbms-tables-insertion.sh
+
 
 # current selected database
 currentDB=""
 # current base directory for databases
 baseDir="./Databases"
+
+source ./dbms-tables.sh
+source ./dbms-tables-insertion.sh
 
 initialize_application() {
     if [ ! -d "$baseDir" ]; then

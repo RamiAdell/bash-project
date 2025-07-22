@@ -47,7 +47,7 @@ function createTable(){
             echo Invalid input. Please enter a valid 5 digits number.
         fi
     done
-
+    touch "$baseDir/$selectedDB/.${tableName}-metadata"
     for (( i=0; i<columns ; i++ ))
     do 
         readColumnName $i
@@ -241,6 +241,6 @@ function deleteAllTable(){
 
 }
 
-function deleteFromTable(){
+# function deleteFromTable(){
     
-}
+# }

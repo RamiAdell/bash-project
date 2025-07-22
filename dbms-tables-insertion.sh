@@ -1,26 +1,42 @@
-
 insertInTable() {
-    baseDir="./Databases"
-    currentDB="$1"
     clear
     echo "INSERT DATA"
     echo ""
 
-    # will add options to select database with select menu
-    echo "Available Tables:"
-    ls "$baseDir/$currentDB/" | grep -v '^\.' || { clear; echo "No tables found"; return; }
+    tableList=()
+    tableCount=0
 
-    read -p "Enter table name: " selectedTable
+    if [ -d "$baseDir/$selectedDB" ]; then
+        echo "Available Tables:"
+        for table in "$baseDir/$selectedDB/"*; do
+            if [ -f "$table" ]; then
+                tableCount=$((tableCount + 1))
+                tableName=$(basename "$table")
+                echo "$tableCount. $tableName"
+                tableList+=("$tableName")
+            fi
+        done
 
-    metaDataFile="$baseDir/$currentDB/.$selectedTable-metadata"
-    dataFile="$baseDir/$currentDB/$selectedTable"
-    if [ ! -f "$dataFile" ]; then
-        clear
-        echo "Table '$selectedTable' not found."
-        return
-    fi
-    if [ ! -f "$metaDataFile" ]; then
-        echo "Metadata for table '$selectedTable' not found."
+        if [ ${#tableList[@]} -eq 0 ]; then
+            echo "No tables found"
+            return
+        fi
+
+        while true; do
+            read -p "Select table by number: " tableChoice
+            if [[ "$tableChoice" =~ ^[0-9]+$ ]] && [ "$tableChoice" -ge 1 ] && [ "$tableChoice" -le "${#tableList[@]}" ]; then
+                index=$((tableChoice-1))
+                selectedTable="${tableList[$index]}"
+                metaDataFile="$baseDir/$selectedDB/.$selectedTable-metadata"
+                dataFile="$baseDir/$selectedDB/$selectedTable"
+                break
+            else
+                echo "Invalid selection. Try again."
+            fi
+        done
+
+    else
+        echo "Error: '$baseDir/$selectedDB' directory not found"
         return
     fi
 
@@ -43,8 +59,8 @@ insertInTable() {
     done < "$metaDataFile"
 
     rowToAdd=""
-    clear
-    echo "Inserting data into table '$selectedTable' in database '$currentDB'."
+    
+    echo "Inserting data into table '$selectedTable' in database '$selectedDB'."
     echo ""
     for ((j=0; j<${#columnArray[@]}; j++)); do
         colName="${columnArray[j]}"
@@ -78,7 +94,7 @@ insertInTable() {
     done
 
     echo "$rowToAdd" >> "$dataFile"
-    clear
+    
     echo "Data inserted successfully into table '$selectedTable'."
 
 }
