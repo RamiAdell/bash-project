@@ -193,7 +193,8 @@ function print_DBmenu(){
                 exit
                 ;;
             *)
-                echo Enter a number from 1 to 5 to continue
+                clear
+                echo "Enter a number from 1 to 5 to continue"
                 break
                 ;;
             esac
