@@ -5,256 +5,123 @@ shopt -s extglob
 
 
 # current selected database
-currentDB=""
+currentDB="hello"
 # current base directory for databases
 baseDir="./Databases"
 
-source ./dbms-tables.sh
-source ./dbms-tables-insertion.sh
 
-initialize_application() {
-    if [ ! -d "$baseDir" ]; then
-        mkdir -p "$baseDir"
-    fi
-}
+function handleDelete() {
+    local deleteQuery="$1"
 
-dbOptions=("Create Database" "List Databases" "Connect to Databases" "Drop Database" "Exit")
-tableOptions=("Create Table" "Insert Data" "Update Data" "Delete Data" "Show Table Data" "List Tables" "Drop Table" "Back to Main Menu")
+    if [[ "$deleteQuery" =~ ^(DELETE[[:space:]]+FROM|delete[[:space:]]+from)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)([[:space:]]+(WHERE|where)[[:space:]]+(.+))?\;$ ]] 
+    then
+        local parts=($deleteQuery)
+        local table="${parts[2]}"
+        local whereKeyword="${parts[3]}"
+        if [[ -z "$whereKeyword" ]]
+        then 
+            table="${table%;}"
+        fi 
+        local condition="${deleteQuery#*$whereKeyword }"
+        condition="${condition%;}"
 
-function createDB(){
+        local tablePath="$baseDir/$currentDB/$table"
+        local metaPath="$baseDir/$currentDB/.$table-metadata"
+        if [[ ! -f "$tablePath" || ! -f "$metaPath" ]]; then
+            echo "Table or metadata file not found."
+            return
+        fi
 
-    while true; do
-
-    read -p "Enter database name: " dbName
-
-    if [ -d "$baseDir/$dbName" ]; then
-        echo "Database '$dbName' already exists. Please choose another name."
-        continue
-    fi
-
-    if [ -z "$dbName" ]; then
-        echo "Database name cannot be empty. Please try again."
-        continue
-    fi
-
-    if [[ ! "$dbName" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
-        echo "Database Must start with a letter or underscore and contain only letters, digits, or underscores."
-        continue
-    fi
-
-
-    mkdir -p "$baseDir/$dbName"
-    clear
-    echo "Database name '$dbName' is Created."
-    break
-    done
-
-}
-
-function listDB(){
-    dbNames=()
-    for db in "$baseDir"/*; do
-        [[ -d "$db" ]] && dbNames+=("$(basename "$db")")
-    done
-
-    if [[ ${#dbNames[@]} -eq 0 ]]; then
-        echo "No available databases"
-    else
-        echo ""
-        echo Available Databases: 
-        echo "${dbNames[*]}" | sed 's/ /, /g'
-    fi
-}
-
-function connectDB(){
-
-    clear
-    while true; do
-
-    dbList=()
-    dbCount=0
-
-    if [ -d "$baseDir" ]; then
-        echo "Available Databases:"
-        for db in "$baseDir"/*; do
-            if [ -d "$db" ]; then
-                dbCount=$((dbCount + 1))
-                dbName=$(basename "$db")
-                echo "$dbCount. $dbName"
-                dbList+=("$dbName")
+        if [[ -z "$whereKeyword" ]] 
+        then
+            clear
+            if [[ ! -s $tablePath ]]
+            then 
+                echo "Table is already empty."
+            else 
+                > "$tablePath"
+                echo "All rows deleted from table '$table'."
             fi
-        done
+        else
+            if [[ ! "$condition" =~ ^([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=[[:space:]]*(.+)$ ]] 
+            then
+                echo "Invalid WHERE condition syntax. Expected: column=value"
+                return
+            fi
 
-        if [ ${#dbList[@]} -eq 0 ]; then
-            echo "No databases found"
+            local colName="${BASH_REMATCH[1]}"
+            local targetValue="${BASH_REMATCH[2]}"
+
+            targetValue="${targetValue//\"/}"
+            targetValue="${targetValue//\'/}"
+
+            local colIndex=$(grep -n "^$colName:" "$metaPath" | cut -d: -f1)
+            if [[ -z "$colIndex" ]]; then
+                echo "Column '$colName' not found in table '$table'."
+                return
+            fi
+
+            local matchingRows=$(awk -F: -v col="$colIndex" -v val="$targetValue" '$col == val {print NR}' "$tablePath")
+            if [[ -z "$matchingRows" ]]; then
+                echo "No rows match condition: $colName = $targetValue"
+                return
+            fi
+
+            echo "$matchingRows" | sort -rn | while read -r lineNum; do
+                sed -i "${lineNum}d" "$tablePath"
+            done
+
+            echo "Deleted matching rows from '$table' where $colName = $targetValue."
+        fi
+    else
+        echo "Invalid DELETE syntax."
+        echo "Accepted forms:"
+        echo "  DELETE FROM table_name;"
+        echo "  DELETE FROM table_name WHERE column=value;"
+        echo "Only full lowercase or uppercase accepted."
+    fi
+}
+
+function main(){
+    echo "Welcome to oursql Engine!"
+    PS3="Query: "
+    while true 
+    do 
+        read -r query
+
+        query=$(echo "$query" | sed 's/^[ \t]*//;s/[ \t]*$//')
+        if [[ "$query" =~ ^[[:space:]]*(exit|quit)[[:space:]]*$ ]]; then
+            echo "Exiting..."
             break
         fi
-
-        read -p "Enter database number to select or 'new' to create new database: " choice
-        if [[ "$choice" = "new" ]]; then
-        createDB
-        continue
-        fi
-
-        if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#dbList[@]}" ]; then
-            index=$((choice-1))
-            selectedDB="${dbList[$index]}"
-            clear
-            printTableMenu
-            return
-            
-        else
-            echo "Invalid selection."
-            
-        fi
-
-    else
-        echo "Error: Directory '$baseDir' does not exist."
-        exit 1
-    fi
-
-    done
-}
-
-function dropDB(){
-    PS3="Enter the DB number to drop: "
-    while true
-    do 
-        dbList=("$baseDir"/*)
-        dbNames=()
-        for db in "${dbList[@]}"
-        do 
-            if [[ -d $db ]] 
-            then  
-                dbName=`basename $db`
-                dbNames+=("$dbName")
-            fi 
-        done
-        if [[ ${#dbNames[@]} -eq 0 ]]; then
-            echo "No databases found in $baseDir"
-            echo "Exiting...."
-          return
-        fi
-
-        dbNames+=("--Back to Main Menu--")
-       
-        select dbName in "${dbNames[@]}"
-        do
-            if [[ "$REPLY" -eq "${#dbNames[@]}" ]]
-            then
-                echo Exiting....
-                PS3="Enter a valid number to proceed: "
-                return 
-            fi
-            if [[ -n "$dbName" ]]; then
-                read -p "Are you sure you want to delete '$dbName'? [y/N]: " confirm
-                if [[ "$confirm" =~ ^[Yy]$ ]]
-                then
-                    rm -rf "$baseDir/$dbName"
-                    echo "Database '$dbName' deleted successfully."
-                else
-                    echo "Deletion cancelled."
-                fi
-                break
-            else
-                echo "Invalid choice. Try again."
-            fi
-        done
-
-    done
-}
-
-function print_DBmenu(){
-    
-    while true; do
-    echo ""
-    echo "Main Menu:"
-    PS3="Enter a valid number to proceed: "
-        select option in "${dbOptions[@]}"
-        do 
-            case $REPLY in 
-            1)
-                createDB 
-                break
+        cmd=$(echo "$query" | awk '{print toupper($1)}')
+        case "$cmd" in
+            SELECT)
+                handleSelect "$query"
                 ;;
-            2)
-                listDB
-                break
+            INSERT)
+                handleInsert "$query"
                 ;;
-            3) 
-                connectDB
-                break
+            DELETE)
+                handleDelete "$query"
                 ;;
-            4)
-                dropDB
-                break
+            UPDATE)
+                handleUpdate "$query"
                 ;;
-            5)
-                exit
+            DROP)
+                handleDrop "$query"
                 ;;
             *)
-                clear
-                echo "Enter a number from 1 to 5 to continue"
-                break
+                echo "Invalid or unsupported SQL command."
                 ;;
-            esac
-        done   
+        esac
     done
 }
 
-function printTableMenu(){
-    
-    while true; do
-    echo ""
-    echo "Selected Database : $selectedDB"
-    echo ""
-    echo "Operations Menu:"
-    PS3="Enter a valid number to proceed: "
-        select option in "${tableOptions[@]}"
-        do 
-            case $REPLY in 
-            1)
-                createTable 
-                break
-                ;;
-            2)
-                insertInTable
-                break
-                ;;
-            3)
-                updateInTable
-                break
-                ;;
-            4)
-                deleteInTable
-                break
-                ;;
-            5)
-                showTableData
-                break
-                ;;
-            6)
-                listTables 
-                break
-                ;;
-            7)
-                dropTable
-                break
-               ;;
-            8)
-                clear
-                return
-                ;;
-            *)
-                echo Enter a number from 1 to 8 to continue
-                break
-                ;;
-            esac
-        done   
-    done
-}
 
-initialize_application
-print_DBmenu
+main
 
 
+
+# DELETE FROM table_name WHERE condition;
+# DELETE * FROM table_name;
