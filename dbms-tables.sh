@@ -25,7 +25,7 @@ function createTable(){
             continue
         elif [[ "$tableName" == "\$" ]]
         then 
-            break    
+            return     
         elif [[ ! "$tableName" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]
         then     
             echo "Table name must start with a letter or underscore and contain only letters, digits, or underscores."
@@ -64,8 +64,8 @@ function createTable(){
             pkColumn=""
         fi 
         echo "$columnName:$colDataType:$pkColumn" >> "$baseDir/$selectedDB/.${tableName}-metadata"
-        touch "$baseDir/$selectedDB/$tableName" 
     done
+    touch "$baseDir/$selectedDB/$tableName"
     clear
     echo "Table '$tableName' created successfully in database '$selectedDB'."
 
@@ -182,6 +182,10 @@ function dropTable(){
 }
 
 function deleteInTable(){
+    clear
+    echo "DELETE DATA"
+    echo ""
+
     while true
     do 
         select choice in "Delete all table?" "Delete from table?" "--Back to table operations Menu--"
@@ -208,8 +212,8 @@ function deleteInTable(){
 }
 
 function deleteAllTable(){
-    listTablesPreProcess
     PS3="Enter the Table number to delete: "
+    clear 
     while true
     do 
         listTablesPreProcess
@@ -217,6 +221,7 @@ function deleteAllTable(){
         do
             if [[ "$REPLY" -eq "${#tableNames[@]}" ]]
             then
+                clear
                 echo No tables found in database $selectedDB
                 echo Exiting....
                 PS3="Enter a valid number to proceed: "
@@ -226,6 +231,7 @@ function deleteAllTable(){
                 read -p "Are you sure you want to delete '$tableName'? [y/N]: " confirm
                 if [[ "$confirm" =~ ^[Yy]$ ]]
                 then
+                    clear 
                     echo "" > "$baseDir/$selectedDB/$tableName"
                     echo "Tabel '$tableName' content deleted successfully."
                 else
@@ -241,6 +247,72 @@ function deleteAllTable(){
 
 }
 
-# function deleteFromTable(){
-    
-# }
+function deleteFromTable() {
+    listTablesPreProcess
+    PS3="Enter the Table number to delete from: "
+    clear 
+    echo "Available Tables:"
+    select tableName in "${tableNames[@]}"; do
+        if [[ -z "$tableName" ]]; then
+            echo "Invalid choice. Try again."
+            continue
+        fi
+
+        tablePath="$baseDir/$selectedDB/$tableName"
+        metaPath="$baseDir/$selectedDB/.$tableName-metadata"
+
+        if [[ ! -f "$tablePath" || ! -s "$metaPath" ]]; then
+            echo "Table or its metadata doesn't exist or is empty."
+            return
+        fi
+        clear 
+        echo -e "\nAvailable columns:"
+        columns=($(cut -d ':' -f1 "$metaPath"))
+
+        i=1
+        for col in "${columns[@]}"
+        do 
+            echo "Column $i: $col"
+            ((i++))
+        done
+
+        read -p "Enter the column name to use in WHERE condition: " colName
+        colIndex=$(grep -n "^$colName:" "$metaPath" | cut -d: -f1)
+
+        if [[ -z "$colIndex" ]]; then
+            echo "Column not found."
+            return
+        fi
+
+        read -p "Enter the value to match for deletion: " targetValue
+
+        matchingRows=$(awk -F: -v col="$colIndex" -v val="$targetValue" '$col == val {print NR ": " $0}' "$tablePath")
+
+        if [[ -z "$matchingRows" ]]; then
+            clear 
+            echo "No matching rows found."
+            return
+        fi
+        clear 
+        echo -e "\nMatching rows:"
+        echo "$matchingRows"
+
+        read -p "Enter the row number to delete (or 0 to cancel): " rowNum
+
+        if [[ "$rowNum" == "0" ]]; then
+            echo "Deletion cancelled."
+            return
+        fi
+
+        totalLines=$(wc -l < "$tablePath")
+        if (( rowNum > totalLines || rowNum < 1 )); then
+            echo "Invalid row number."
+            return
+        fi
+
+        sed -i "${rowNum}d" "$tablePath"
+        clear 
+        echo "Row $rowNum deleted successfully."
+        break 
+    done
+}
