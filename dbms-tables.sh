@@ -189,10 +189,11 @@ function deleteInTable(){
     clear
     echo "DELETE DATA"
     echo ""
-
+    deleteAllFlag=1
+    deleteoneFlag=0
     while true
     do 
-        select choice in "Delete all table?" "Delete from table?" "--Back to table operations Menu--"
+        select choice in "Delete all table?" "Delete one record from table?" "Delete all records from table WHERE condition?" "--Back to table operations Menu--"
         do 
             case $REPLY in 
             1)
@@ -200,10 +201,14 @@ function deleteInTable(){
                 break
                 ;;
             2)
-                deleteFromTable
+                deleteFromTable $deleteoneFlag
                 break
                 ;;
             3)
+                deleteFromTable $deleteAllFlag
+                break
+                ;;
+            4)
                 return 
                 ;;
             *)
@@ -255,6 +260,7 @@ function deleteFromTable() {
     listTablesPreProcess
     PS3="Enter the Table number to delete from: "
     clear 
+    deleteFlag=$1
     echo "Available Tables:"
     select tableName in "${tableNames[@]}"; do
         if [[ -z "$tableName" ]]; then
@@ -291,7 +297,7 @@ function deleteFromTable() {
         read -p "Enter the value to match for deletion: " targetValue
 
         matchingRows=$(awk -F: -v col="$colIndex" -v val="$targetValue" '$col == val {print NR ": " $0}' "$tablePath")
-
+        matchingCount=$(echo "$matchingRows" | grep -c '^')
         if [[ -z "$matchingRows" ]]; then
             clear 
             echo "No matching rows found."
@@ -300,23 +306,34 @@ function deleteFromTable() {
         clear 
         echo -e "\nMatching rows:"
         echo "$matchingRows"
+        if [[ $deleteFlag -eq 1 ]]; then
+            echo -e "\nDeleting all $matchingCount matching rows..."
+            # Delete from bottom to top to preserve the row number 
+            echo "$matchingRows" | cut -d: -f1 | sort -rn | while read -r lineNum; do
+                sed -i "${lineNum}d" "$tablePath"
+            done
+            
+            echo "All matching rows deleted."
 
-        read -p "Enter the row number to delete (or 0 to cancel): " rowNum
+        elif [[ $deleteFlag -eq 0 ]]
+        then 
+            read -p "Enter the row number to delete (or 0 to cancel): " rowNum
 
-        if [[ "$rowNum" == "0" ]]; then
-            echo "Deletion cancelled."
-            return
-        fi
+            if [[ "$rowNum" == "0" ]]; then
+                echo "Deletion cancelled."
+                return
+            fi
 
-        totalLines=$(wc -l < "$tablePath")
-        if (( rowNum > totalLines || rowNum < 1 )); then
-            echo "Invalid row number."
-            return
-        fi
+            totalLines=$(wc -l < "$tablePath")
+            if (( rowNum > totalLines || rowNum < 1 )); then
+                echo "Invalid row number."
+                return
+            fi
 
-        sed -i "${rowNum}d" "$tablePath"
-        clear 
-        echo "Row $rowNum deleted successfully."
+            sed -i "${rowNum}d" "$tablePath"
+            clear 
+            echo "Row $rowNum deleted successfully."
+        fi 
         break 
     done
 }
