@@ -47,7 +47,7 @@ function createTable(){
             echo Invalid input. Please enter a valid 5 digits number.
         fi
     done
-    touch "$baseDir/$selectedDB/.${tableName}-metadata"
+    tempMetaFile=$(mktemp)
     for (( i=0; i<columns ; i++ ))
     do 
         readColumnName $i
@@ -63,9 +63,11 @@ function createTable(){
         else
             pkColumn=""
         fi 
-        echo "$columnName:$colDataType:$pkColumn" >> "$baseDir/$selectedDB/.${tableName}-metadata"
+        echo "$columnName:$colDataType:$pkColumn" >> "$tempMetaFile"
     done
+    cp "$tempMetaFile" "$baseDir/$selectedDB/.${tableName}-metadata"
     touch "$baseDir/$selectedDB/$tableName"
+    rm "$tempMetaFile"
     clear
     echo "Table '$tableName' created successfully in database '$selectedDB'."
 
