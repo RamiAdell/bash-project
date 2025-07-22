@@ -49,8 +49,9 @@ function createTable(){
     done
     tempMetaFile=$(mktemp)
     for (( i=0; i<columns ; i++ ))
-    do 
-        readColumnName $i
+    do  
+        clear 
+        readColumnName $i "$tempMetaFile"
         readDataTypes
         if [[ $pkFlag -eq 1 ]]
         then 
@@ -94,11 +95,12 @@ function readDataTypes(){
 }
 function readColumnName(){
     colIdx=$1
+    tempMetaFile=$2
     while true
     do 
         read -p "Enter the column $((colIdx+1)) name: " columnName
         echo ""
-        if cut -d ':' -f1 "$baseDir/$selectedDB/.${tableName}-metadata" | grep -xq "$columnName" 
+        if cut -d ':' -f1 "$tempMetaFile" | grep -xq "$columnName" 
         then
             echo "Column $columnName already exists. Please choose another name."
             continue
