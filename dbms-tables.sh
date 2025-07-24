@@ -25,6 +25,7 @@ function createTable(){
             continue
         elif [[ "$tableName" == "\$" ]]
         then 
+        clear
             return     
         elif [[ ! "$tableName" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]
         then     
@@ -120,6 +121,7 @@ function readColumnName(){
 }
 
 function listTables(){
+    clear
     tableNames=()
     for table in "$baseDir/$selectedDB"/*; do
         [[ -f "$table" ]] && tableNames+=("$(basename "$table")")
@@ -336,4 +338,92 @@ function deleteFromTable() {
         fi 
         break 
     done
+}
+
+
+showTableData() {
+
+    clear
+    echo ""
+    echo "SHOWING DATA"
+    echo ""
+
+    tableList=()
+    tableCount=0
+
+    if [ -d "$baseDir/$selectedDB" ]; then
+        echo "Available Tables:"
+        for table in "$baseDir/$selectedDB/"*; do
+            if [ -f "$table" ]; then
+                tableCount=$((tableCount + 1))
+                tableName=$(basename "$table")
+                echo "$tableCount. $tableName"
+                tableList+=("$tableName")
+            fi
+        done
+        echo ""
+        echo "to go back to table operations menu, enter 0"
+
+        if [ ${#tableList[@]} -eq 0 ]; then
+            echo "No tables found"
+            return
+        fi
+
+        while true; do
+            echo ""
+            read -p "Select table by number: " tableChoice
+            if [[ "$tableChoice" -eq 0 ]]; then
+            clear
+                return
+            fi
+            if [[ "$tableChoice" =~ ^[0-9]+$ ]] && [ "$tableChoice" -ge 1 ] && [ "$tableChoice" -le "${#tableList[@]}" ]; then
+                index=$((tableChoice-1))
+                selectedTable="${tableList[$index]}"
+                metaDataFile="$baseDir/$selectedDB/.$selectedTable-metadata"
+                dataFile="$baseDir/$selectedDB/$selectedTable"
+                break
+            else
+                echo "Invalid selection. Try again."
+                break
+            fi
+        done
+
+    else
+        echo "Database not found"
+        return
+    fi
+
+    if [ ! -f "$dataFile" ] || [ ! -f "$metaDataFile" ]
+    then
+    echo "file missing for '$selectedTable'."
+    return
+    fi
+    clear
+    echo ""
+    echo "Rows in '$selectedTable':"
+    echo "-----------------------------"
+
+    columnNames=()
+    while IFS=':' read -r name _ _; do
+        columnNames+=("$name")
+    done < "$metaDataFile"
+
+    headerLine="${columnNames[0]}"
+    for ((i=1; i<${#columnNames[@]}; i++)); do
+        headerLine+=" | ${columnNames[i]}"
+    done
+
+    
+    echo "$headerLine"
+    echo "-----------------------------"
+
+    while IFS=':' read -r -a row; do
+        echo "${row[0]}" | tr -d '\n'
+        for ((i=1; i<${#row[@]}; i++)); do
+            echo -n " | ${row[i]}"
+        done
+        echo ""
+    done < "$dataFile"
+
+    echo ""
 }

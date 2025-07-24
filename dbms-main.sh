@@ -24,9 +24,14 @@ tableOptions=("Create Table" "Insert Data" "Update Data" "Delete Data" "Show Tab
 function createDB(){
 
     while true; do
+    clear
 
-    read -p "Enter database name: " dbName
-
+    read -p "Enter database name or ($) to go back: " dbName
+    if [[ "$dbName" == "\$" ]]
+    then 
+        clear
+        return 
+    fi    
     if [ -d "$baseDir/$dbName" ]; then
         echo "Database '$dbName' already exists. Please choose another name."
         continue
@@ -52,6 +57,7 @@ function createDB(){
 }
 
 function listDB(){
+    clear
     dbNames=()
     for db in "$baseDir"/*; do
         [[ -d "$db" ]] && dbNames+=("$(basename "$db")")
@@ -62,6 +68,7 @@ function listDB(){
     else
         echo ""
         echo Available Databases: 
+        echo
         echo "${dbNames[*]}" | sed 's/ /, /g'
     fi
 }
@@ -89,8 +96,13 @@ function connectDB(){
             echo "No databases found"
             break
         fi
-
+        echo ""
+        echo "To go back to main menu, enter 0" 
         read -p "Enter database number to select or 'new' to create new database: " choice
+        if [[ "$choice" == "0" ]]; then
+            clear
+            return
+        fi
         if [[ "$choice" = "new" ]]; then
         createDB
         continue

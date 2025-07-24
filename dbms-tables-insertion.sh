@@ -211,6 +211,8 @@ updateInTable(){
                 tableList+=("$tableName")
             fi
         done
+        echo ""
+        echo "to go back to table operations menu, enter 0"
 
         if [ ${#tableList[@]} -eq 0 ]; then
             echo "No tables found"
@@ -221,6 +223,10 @@ updateInTable(){
     
             echo ""
             read -p "Select table by number: " tableChoice
+            if [[ "$tableChoice" -eq 0 ]]; then
+                clear
+                return
+            fi
             if [[ "$tableChoice" =~ ^[0-9]+$ ]] && [ "$tableChoice" -ge 1 ] && [ "$tableChoice" -le "${#tableList[@]}" ]; then
                 index=$((tableChoice-1))
                 selectedTable="${tableList[$index]}"
@@ -272,7 +278,7 @@ updateInTable(){
     echo "2. Update multiple rows by condition"
     echo ""
 
-while true; do
+    while true; do
         read -p "Select update mode (0 to go back): " updateMode
         if [[ "$updateMode" == "1" ]]; then
         clear
@@ -519,7 +525,7 @@ while true; do
                     break
                 fi
                 
-                if [ ! validateDataType "$newValue" "$selectedType" ]
+                if ! validateDataType "$newValue" "$selectedType" 
                 then
                     echo "Invalid value for $selectedColumn. Please try again."
                     continue
