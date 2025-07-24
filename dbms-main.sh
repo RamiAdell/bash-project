@@ -32,21 +32,26 @@ function handleSelect() {
     clear 
 
     echo $selectQuery
-    # Store the regex pattern in a variable
     local sql_regex='^[[:space:]]*(SELECT|select)[[:space:]]+(\*|([a-zA-Z_][a-zA-Z0-9_]*([[:space:]]*,[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*)*))[[:space:]]+(FROM|from)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)([[:space:]]+(WHERE|where)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=[[:space:]]*((["'"'"']([^"'"'"'\\]|\\.)*["'"'"'])|([^[:space:];'"'"'"]+)))?[[:space:]]*;[[:space:]]*$'    
     if [[ "$selectQuery" =~ $sql_regex ]]; then
         
-        local columnTempPart="${BASH_REMATCH[2]}"     # * or column list
-        local tableName="${BASH_REMATCH[6]}"      # table name
-        local whereKeyword="${BASH_REMATCH[8]}"   # WHERE keyword (if exists)
-        local whereColumn="${BASH_REMATCH[9]}"    # column in WHERE
-        local whereValue="${BASH_REMATCH[10]}"    # value in WHERE
+        local columnTempPart="${BASH_REMATCH[2]}"     
+        local tableName="${BASH_REMATCH[6]}"      
+        local whereKeyword="${BASH_REMATCH[8]}"   
+        local whereColumn="${BASH_REMATCH[9]}"   
+        local whereValue="${BASH_REMATCH[10]}"    
         whereValue="${whereValue//\"/}"
         whereValue="${whereValue//\'/}"
 
         local tablePath="$baseDir/$currentDB/$tableName"
         local metaPath="$baseDir/$currentDB/.$tableName-metadata"
-
+        if [[ ! -f $tablePath ]]
+        then 
+            echo ""
+            echo "Table $tableName doesn't exist"
+            echo ""
+            return 
+        fi
         local isSelectAll=0
         local hasWhere=0
 
@@ -84,10 +89,20 @@ function handleSelect() {
                     awk -F':' -v val="$whereValue" -v col="$colIndex" '$col == val {print $0}' "$tablePath"
                 else
                     echo "Column $whereColumn not found in the table $tableName."
+                    return 
                 fi
 
             else 
-                cat $tablePath
+                if [[ ! -s $tablePath ]]
+                then 
+                    echo ""
+                    echo "Table is empty."
+                    echo ""
+                else
+                    echo ""
+                    cat $tablePath
+                    echo ""
+                fi 
             fi
         else
             if [[ $hasWhere -eq 1 ]]
@@ -102,22 +117,8 @@ function handleSelect() {
                         echo "There are no matches."
                         return
                     fi 
-                    declare -a colIndexes=()
-                    for colName in "${columnPart[@]}"; do
-                        index=$(grep -n "^$colName:" "$metaPath" | cut -d: -f1)
-                        colIndexes+=("$index")
-                    done
 
-                    IFS=$'\n' sortedColIndexes=($(sort -n <<<"${colIndexes[*]}"))
-                    unset IFS
-
-                    awkCmd='BEGIN {FS=":"; OFS=":"} {'
-                    for idx in "${sortedColIndexes[@]}"; do
-                        awkCmd+="printf \"%s\", \$$idx; if (${idx} != ${sortedColIndexes[-1]}) printf OFS; "
-                    done
-                    awkCmd+='print ""}'
-
-                    awk "$awkCmd" "$selectTmpFile"
+                    printSelectedColumns "$selectTmpFile" "$metaPath" "${columnPart[@]}" 
                 else 
                     echo There is an error with the provided columns name.
                 fi 
@@ -125,98 +126,76 @@ function handleSelect() {
             else
                 if array1_in_array2 columnPart availableColumns;
                 then 
-                    declare -a colIndexes=()
-                    for colName in "${columnPart[@]}"; do
-                        index=$(grep -n "^$colName:" "$metaPath" | cut -d: -f1)
-                        colIndexes+=("$index")
-                    done
-
-                    IFS=$'\n' sortedColIndexes=($(sort -n <<<"${colIndexes[*]}"))
-                    unset IFS
-
-                    awkCmd='BEGIN {FS=":"; OFS=":"} 
-                    {
-                        # Only print if one of the selected fields is non-empty
-                        if ('
-                    for i in "${!sortedColIndexes[@]}"; do
-                        idx=${sortedColIndexes[$i]}
-                        awkCmd+="\$$idx != \"\""
-                        if (( i < ${#sortedColIndexes[@]} - 1 )); then
-                            awkCmd+=" || "
-                        fi
-                    done
-                    awkCmd+=') {'
-
-                    for i in "${!sortedColIndexes[@]}"; do
-                        idx=${sortedColIndexes[$i]}
-                        awkCmd+="printf \"%s\", \$$idx;"
-                        if (( i < ${#sortedColIndexes[@]} - 1 )); then
-                            awkCmd+=" printf OFS; "
-                        fi
-                    done
-
-                    awkCmd+='print "" } }'
-
-
-                    awk "$awkCmd" "$tablePath"
+                    echo ""
+                    printSelectedColumns "$tablePath" "$metaPath" "${columnPart[@]}" 
+                    echo ""
                 else 
                     echo There is an error with the provided columns name.
                 fi 
             fi 
         fi 
 
-
-        # Display parsed information
-        # echo "Table: $tableName"
-        # echo "Is SELECT *: $isSelectAll"
-        # echo "Columns: $columnPart"
-        # echo "Has WHERE: $hasWhere"
-        
-        # if [[ $hasWhere -eq 1 ]]; then
-        #     echo "WHERE column: $whereColumn"
-        #     echo "WHERE value: $whereValue"
-        # fi
-        # echo "  SELECT * FROM table;"
-    # echo "  SELECT col1,col2 FROM table;"
-    # echo "  SELECT * FROM table WHERE col=val;"
-    # echo "  SELECT col1 FROM table WHERE col2=val;"
     else
-        echo "Invalid SELECT query format"
+        echo "Invalid SELECT query syntax"
         echo "-------AVAILABLE FORMATS-------"
-        echo "SELECT * FROM table;"
-        echo "SELECT col1,col2... FROM table;"
-        echo "SELECT * FROM table WHERE col=val;"
-        echo "SELECT col1 FROM table WHERE col2=val;"
-        return 1
+        echo "  SELECT * FROM table;"
+        echo "  SELECT col1,col2... FROM table;"
+        echo "  SELECT * FROM table WHERE col=val;"
+        echo "  SELECT col1 FROM table WHERE col2=val;"
+        echo "Only full lowercase or uppercase accepted."
+        return 
     fi
 }
+function printSelectedColumns(){
+    local filePath="$1"
+    local metaFile="$2"
+    shift 2  
+    local columnArray=("$@")  
+    
+    declare -a colIndexes=()
+    for colName in "${columnArray[@]}"; do
+        index=$(grep -n "^$colName:" "$metaFile" | cut -d: -f1)
+        colIndexes+=("$index")
+    done
 
-# function printSelectedColumns(){
-#     local columnPart=$1
-#     local file=$2
+    IFS=$'\n' sortedColIndexes=($(sort -n <<<"${colIndexes[*]}"))
+    unset IFS
 
-#     declare -a colIndexes=()
-#     for colName in "${columnPart[@]}"; do
-#         index=$(grep -n "^$colName:" "$metaPath" | cut -d: -f1)
-#         colIndexes+=("$index")
-#     done
+    awkCmd='BEGIN {FS=":"; OFS=":"} 
+    {
+        # Only print if one of the selected fields is non-empty
+        if ('
+    for i in "${!sortedColIndexes[@]}"; do
+        idx=${sortedColIndexes[$i]}
+        awkCmd+="\$$idx != \"\""
+        if (( i < ${#sortedColIndexes[@]} - 1 )); then
+            awkCmd+=" || "
+        fi
+    done
+    awkCmd+=') {'
 
-#     IFS=$'\n' sortedColIndexes=($(sort -n <<<"${colIndexes[*]}"))
-#     unset IFS
+    for i in "${!sortedColIndexes[@]}"; do
+        idx=${sortedColIndexes[$i]}
+        awkCmd+="printf \"%s\", \$$idx;"
+        if (( i < ${#sortedColIndexes[@]} - 1 )); then
+            awkCmd+=" printf OFS; "
+        fi
+    done
 
-#     awkCmd='BEGIN {FS=":"; OFS=":"} {'
-#     for idx in "${sortedColIndexes[@]}"; do
-#         awkCmd+="printf \"%s\", \$$idx; if (${idx} != ${sortedColIndexes[-1]}) printf OFS; "
-#     done
-#     awkCmd+='print ""}'
+    awkCmd+='print "" } }'
 
-#     awk "$awkCmd" "$file"
-# }
+    awk "$awkCmd" "$filePath"
+}
+
 
 function handleDelete() {
     local deleteQuery="$1"
+    clear 
+    echo $deleteQuery
 
-    if [[ "$deleteQuery" =~ ^(DELETE[[:space:]]+FROM|delete[[:space:]]+from)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)([[:space:]]+(WHERE|where)[[:space:]]+(.+))?\;$ ]] 
+    local sql_regex='^[[:space:]]*(DELETE|delete)[[:space:]]+(FROM|from)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)([[:space:]]+(WHERE|where)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=[[:space:]]*((["'"'"']([^"'"'"'\\]|\\.)*["'"'"'])|([^[:space:];'"'"'"]+)))?[[:space:]]*;[[:space:]]*$'
+    
+    if [[ "$deleteQuery" =~ $sql_regex ]] 
     then
         local parts=($deleteQuery)
         local table="${parts[2]}"
@@ -277,20 +256,22 @@ function handleDelete() {
             echo "Deleted matching rows from '$table' where $colName = $targetValue."
         fi
     else
-        echo "Invalid DELETE syntax."
+        echo "Invalid DELETE query syntax."
         echo "Accepted forms:"
         echo "  DELETE FROM table_name;"
         echo "  DELETE FROM table_name WHERE column=value;"
         echo "Only full lowercase or uppercase accepted."
+        return
     fi
 }
 
+
 function main(){
+    set -f 
     echo "Welcome to oursql Engine!"
-    PS3="Query: "
     while true 
     do 
-        read -r query
+        read -r -p ">" query
 
         query=$(echo "$query" | sed 's/^[ \t]*//;s/[ \t]*$//')
         if [[ "$query" =~ ^[[:space:]]*(exit|quit)[[:space:]]*$ ]]; then
@@ -315,16 +296,19 @@ function main(){
                 handleDrop "$query"
                 ;;
             *)
+                clear
                 echo "Invalid or unsupported SQL command."
+                echo "------AVAILABLE SQL COMMANDS------"
+                echo "------SELECT------"
+                echo "------INSERT------"
+                echo "------UPDATE------"
+                echo "------DELETE------"
+                echo "------DROP------"
                 ;;
         esac
     done
+    set +f 
 }
-
 
 main
 
-
-
-# DELETE FROM table_name WHERE condition;
-# DELETE * FROM table_name;
