@@ -8,7 +8,7 @@ source ./dbms-update.sh
 source ./dbms-insert.sh
 
 # current selected database
-currentDB="ras"
+currentDB="seif"
 # current base directory for databases
 baseDir="./Databases"
 
