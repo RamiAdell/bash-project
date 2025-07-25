@@ -4,8 +4,11 @@ shopt -s extglob
 
 
 
+source ./dbms-update.sh
+source ./dbms-insert.sh
+
 # current selected database
-currentDB="hello"
+currentDB="ras"
 # current base directory for databases
 baseDir="./Databases"
 
@@ -32,6 +35,7 @@ function handleSelect() {
     clear 
 
     echo $selectQuery
+    echo ""
     local sql_regex='^[[:space:]]*(SELECT|select)[[:space:]]+(\*|([a-zA-Z_][a-zA-Z0-9_]*([[:space:]]*,[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*)*))[[:space:]]+(FROM|from)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)([[:space:]]+(WHERE|where)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=[[:space:]]*((["'"'"']([^"'"'"'\\]|\\.)*["'"'"'])|([^[:space:];'"'"'"]+)))?[[:space:]]*;[[:space:]]*$'    
     if [[ "$selectQuery" =~ $sql_regex ]]; then
         
@@ -48,7 +52,7 @@ function handleSelect() {
         if [[ ! -f $tablePath ]]
         then 
             echo ""
-            echo "Table $tableName doesn't exist"
+            echo "Table $tableName doesnt exist"
             echo ""
             return 
         fi
