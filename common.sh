@@ -57,3 +57,19 @@ function checkPrimaryKeyDuplicate() {
     
     return 0
 }
+function array1_in_array2() {
+    local -n array1="$1"   
+    local -n array2="$2"   
+    local -A set         
+
+    for elemment in "${array2[@]}"; do
+        set["$elemment"]=1
+    done
+
+    for elemment in "${array1[@]}"; do
+        if [[ ! -v set["$elemment"] ]]; then
+            return 1  
+        fi
+    done
+    return 0  
+}

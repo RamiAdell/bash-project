@@ -3,7 +3,7 @@ source ./common.sh
 
 function handleInsert() {
     local insertQuery="$1"
-     
+    clear
     echo $insertQuery
 
     # Regex for INSERT INTO table (col1,col2,...) VALUES (val1,val2,...);
