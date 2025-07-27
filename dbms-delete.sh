@@ -1,3 +1,6 @@
+#!/bin/bash
+source ./common.sh
+
 function handleDelete() {
     local deleteQuery="$1"
     clear 

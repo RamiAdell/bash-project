@@ -1,4 +1,4 @@
-
+#!/bin/bash
 source ./common.sh
 
 
@@ -46,8 +46,8 @@ function printSelectedColumns(){
 
 function handleSelect() {
     local selectQuery="$1"
+     
     clear 
-
     echo $selectQuery
     echo ""
     local sql_regex='^[[:space:]]*(SELECT|select)[[:space:]]+(\*|([a-zA-Z_][a-zA-Z0-9_]*([[:space:]]*,[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*)*))[[:space:]]+(FROM|from)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)([[:space:]]+(WHERE|where)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=[[:space:]]*((["'"'"']([^"'"'"'\\]|\\.)*["'"'"'])|([^[:space:];'"'"'"]+)))?[[:space:]]*;[[:space:]]*$'    

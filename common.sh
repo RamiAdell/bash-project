@@ -1,3 +1,4 @@
+#!/bin/bash
 function validateDataType() {
     local value="$1"
     local dtype="$2"
@@ -73,3 +74,11 @@ function array1_in_array2() {
     done
     return 0  
 }
+function initialize_application() {
+    if [ ! -d "$baseDir" ]; then
+        mkdir -p "$baseDir"
+    fi
+}
+# Export currentDB if set, but do not initialize here to avoid overwriting
+export currentDB
+export baseDir

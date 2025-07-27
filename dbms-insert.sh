@@ -1,4 +1,4 @@
-
+#!/bin/bash
 source ./common.sh
 
 function handleInsert() {

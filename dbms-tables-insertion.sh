@@ -1,3 +1,6 @@
+#!/bin/bash
+source ./common.sh
+
 insertInTable() {
     clear
     echo "INSERT DATA"
@@ -6,9 +9,9 @@ insertInTable() {
     tableList=()
     tableCount=0
 
-    if [ -d "$baseDir/$selectedDB" ]; then
+    if [ -d "$baseDir/$currentDB" ]; then
         echo "Available Tables:"
-        for table in "$baseDir/$selectedDB/"*; do
+        for table in "$baseDir/$currentDB/"*; do
             if [ -f "$table" ]; then
                 tableCount=$((tableCount + 1))
                 tableName=$(basename "$table")
@@ -33,8 +36,8 @@ insertInTable() {
             if [[ "$tableChoice" =~ ^[0-9]+$ ]] && [ "$tableChoice" -ge 1 ] && [ "$tableChoice" -le "${#tableList[@]}" ]; then
                 index=$((tableChoice-1))
                 selectedTable="${tableList[$index]}"
-                metaDataFile="$baseDir/$selectedDB/.$selectedTable-metadata"
-                dataFile="$baseDir/$selectedDB/$selectedTable"
+                metaDataFile="$baseDir/$currentDB/.$selectedTable-metadata"
+                dataFile="$baseDir/$currentDB/$selectedTable"
                 break
             else
                 echo "Invalid selection. Try again."
@@ -77,7 +80,7 @@ insertInTable() {
 
     rowToAdd=""
     clear
-    echo "Inserting data into table '$selectedTable' in database '$selectedDB'."
+    echo "Inserting data into table '$selectedTable' in database '$currentDB'."
     echo ""
     for ((j=0; j<${#columnArray[@]}; j++)); do
         colName="${columnArray[j]}"
@@ -201,9 +204,9 @@ updateInTable(){
     tableList=()
     tableCount=0
 
-    if [ -d "$baseDir/$selectedDB" ]; then
+    if [ -d "$baseDir/$currentDB" ]; then
         echo "Available Tables:"
-        for table in "$baseDir/$selectedDB/"*; do
+        for table in "$baseDir/$currentDB/"*; do
             if [ -f "$table" ] && [[ "$(basename "$table")" != .* ]]; then
                 tableCount=$((tableCount + 1))
                 tableName=$(basename "$table")
@@ -230,8 +233,8 @@ updateInTable(){
             if [[ "$tableChoice" =~ ^[0-9]+$ ]] && [ "$tableChoice" -ge 1 ] && [ "$tableChoice" -le "${#tableList[@]}" ]; then
                 index=$((tableChoice-1))
                 selectedTable="${tableList[$index]}"
-                metaDataFile="$baseDir/$selectedDB/.$selectedTable-metadata"
-                dataFile="$baseDir/$selectedDB/$selectedTable"
+                metaDataFile="$baseDir/$currentDB/.$selectedTable-metadata"
+                dataFile="$baseDir/$currentDB/$selectedTable"
                 break
             else
                 echo "Invalid selection. Try again."

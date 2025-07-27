@@ -2,7 +2,8 @@
 
 shopt -s extglob
 
-baseDir="./Databases"
+source ./common.sh
+
 
 
 function createTable(){
@@ -14,7 +15,7 @@ function createTable(){
         read -p "Enter the table name: (write $ to quit) " tableName
         echo ""
 
-        if [[ -f "$baseDir/$selectedDB/$tableName" ]]
+        if [[ -f "$baseDir/$currentDB/$tableName" ]]
         then 
             echo "Table $tableName already exists. Please choose another name."
             continue
@@ -67,11 +68,11 @@ function createTable(){
         fi 
         echo "$columnName:$colDataType:$pkColumn" >> "$tempMetaFile"
     done
-    cp "$tempMetaFile" "$baseDir/$selectedDB/.${tableName}-metadata"
-    touch "$baseDir/$selectedDB/$tableName"
+    cp "$tempMetaFile" "$baseDir/$currentDB/.${tableName}-metadata"
+    touch "$baseDir/$currentDB/$tableName"
     rm "$tempMetaFile"
     clear
-    echo "Table '$tableName' created successfully in database '$selectedDB'."
+    echo "Table '$tableName' created successfully in database '$currentDB'."
 
 }
 
@@ -123,7 +124,7 @@ function readColumnName(){
 function listTables(){
     clear
     tableNames=()
-    for table in "$baseDir/$selectedDB"/*; do
+    for table in "$baseDir/$currentDB"/*; do
         [[ -f "$table" ]] && tableNames+=("$(basename "$table")")
     done
 
@@ -137,7 +138,7 @@ function listTables(){
 }
 
 function listTablesPreProcess(){
-    tableList=("$baseDir/$selectedDB"/*)
+    tableList=("$baseDir/$currentDB"/*)
     tableNames=()
     for table in "${tableList[@]}"
     do 
@@ -148,7 +149,7 @@ function listTablesPreProcess(){
         fi 
     done
     if [[ ${#tableNames[@]} -eq 0 ]]; then
-        echo "No tables found in database $selectedDB"
+        echo "No tables found in database $currentDB"
         echo "Exiting...."
         return
     fi
@@ -164,7 +165,7 @@ function dropTable(){
         do
             if [[ "$REPLY" -eq "${#tableNames[@]}" ]]
             then
-                echo No tables found in database $selectedDB
+                echo No tables found in database $currentDB
                 echo Exiting....
                 PS3="Enter a valid number to proceed: "
                 return 
@@ -173,7 +174,7 @@ function dropTable(){
                 read -p "Are you sure you want to delete '$tableName'? [y/N]: " confirm
                 if [[ "$confirm" =~ ^[Yy]$ ]]
                 then
-                    rm -rf "$baseDir/$selectedDB/$tableName" "$baseDir/$selectedDB/.${tableName}-metadata"
+                    rm -rf "$baseDir/$currentDB/$tableName" "$baseDir/$currentDB/.${tableName}-metadata"
                     echo "Tabel '$tableName' deleted successfully."
                 else
                     echo "Deletion cancelled."
@@ -233,7 +234,7 @@ function deleteAllTable(){
             if [[ "$REPLY" -eq "${#tableNames[@]}" ]]
             then
                 clear
-                echo No tables found in database $selectedDB
+                echo No tables found in database $currentDB
                 echo Exiting....
                 PS3="Enter a valid number to proceed: "
                 return 
@@ -243,7 +244,7 @@ function deleteAllTable(){
                 if [[ "$confirm" =~ ^[Yy]$ ]]
                 then
                     clear 
-                    echo "" > "$baseDir/$selectedDB/$tableName"
+                    echo "" > "$baseDir/$currentDB/$tableName"
                     echo "Tabel '$tableName' content deleted successfully."
                 else
                     echo "Deletion cancelled."
@@ -270,8 +271,8 @@ function deleteFromTable() {
             continue
         fi
 
-        tablePath="$baseDir/$selectedDB/$tableName"
-        metaPath="$baseDir/$selectedDB/.$tableName-metadata"
+        tablePath="$baseDir/$currentDB/$tableName"
+        metaPath="$baseDir/$currentDB/.$tableName-metadata"
 
         if [[ ! -f "$tablePath" || ! -s "$metaPath" ]]; then
             echo "Table or its metadata doesn't exist or is empty."
@@ -351,9 +352,9 @@ showTableData() {
     tableList=()
     tableCount=0
 
-    if [ -d "$baseDir/$selectedDB" ]; then
+    if [ -d "$baseDir/$currentDB" ]; then
         echo "Available Tables:"
-        for table in "$baseDir/$selectedDB/"*; do
+        for table in "$baseDir/$currentDB/"*; do
             if [ -f "$table" ]; then
                 tableCount=$((tableCount + 1))
                 tableName=$(basename "$table")
@@ -379,8 +380,8 @@ showTableData() {
             if [[ "$tableChoice" =~ ^[0-9]+$ ]] && [ "$tableChoice" -ge 1 ] && [ "$tableChoice" -le "${#tableList[@]}" ]; then
                 index=$((tableChoice-1))
                 selectedTable="${tableList[$index]}"
-                metaDataFile="$baseDir/$selectedDB/.$selectedTable-metadata"
-                dataFile="$baseDir/$selectedDB/$selectedTable"
+                metaDataFile="$baseDir/$currentDB/.$selectedTable-metadata"
+                dataFile="$baseDir/$currentDB/$selectedTable"
                 break
             else
                 echo "Invalid selection. Try again."
