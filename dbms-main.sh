@@ -2,24 +2,62 @@
 
 shopt -s extglob
 
-
+source ./dbms-update.sh
+source ./dbms-insert.sh
+source ./dbms-select.sh
+source ./dbms-delete.sh
 
 # current selected database
 currentDB=""
 # current base directory for databases
 baseDir="./Databases"
 
-source ./dbms-tables.sh
-source ./dbms-tables-insertion.sh
 
+function handleUse(){
+    local useQuery="$1"
+    local sql_regex='^[[:space:]]*(USE|use)[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*;[[:space:]]*$'
+    clear 
+    echo $useQuery
+    
+    if [[ "$useQuery" =~ $sql_regex ]] 
+    then
+        local databaseName="${BASH_REMATCH[2]}" 
+        if [[ -d $baseDir ]]
+        then 
+            if [[ -d $baseDir/$databaseName ]]
+            then 
+                currentDB="$databaseName"
+                echo "Using database '$currentDB'."            
+            else
+                echo "Database doesn't exist. Enter a valid database name."
+                return
+            fi 
+        else
+            echo "Error: Directory '$baseDir' does not exist."
+            initialize_application
+            echo "Created base directory '$baseDir'."
+            echo "Please create a database first."
+            return
+        fi 
+    else 
+        echo "Invalid USE query syntax."
+        echo "Accepted forms:"
+        echo "  USE databaseName;"
+        echo "Only full lowercase or uppercase accepted."
+    fi 
+}
 initialize_application() {
     if [ ! -d "$baseDir" ]; then
         mkdir -p "$baseDir"
     fi
 }
 
-dbOptions=("Create Database" "List Databases" "Connect to Databases" "Drop Database" "Exit")
-tableOptions=("Create Table" "Insert Data" "Update Data" "Delete Data" "Show Table Data" "List Tables" "Drop Table" "Back to Main Menu")
+function main(){
+    set -f 
+    echo "Welcome to oursql Engine!"
+    while true 
+    do 
+        read -r -p ">" query
 
 function createDB(){
 
@@ -167,106 +205,45 @@ function dropDB(){
                 else
                     echo "Deletion cancelled."
                 fi
-                break
-            else
-                echo "Invalid choice. Try again."
-            fi
-        done
-
-    done
-}
-
-function print_DBmenu(){
-    
-    while true; do
-    echo ""
-    echo "Main Menu:"
-    PS3="Enter a valid number to proceed: "
-        select option in "${dbOptions[@]}"
-        do 
-            case $REPLY in 
-            1)
-                createDB 
-                break
+                handleSelect "$query"
                 ;;
-            2)
-                listDB
-                break
+            INSERT)
+                if [[ -z "$currentDB" ]]; then
+                    echo "No database selected. Use 'USE databaseName;' to select a database."
+                    continue
+                fi
+                handleInsert "$query"
                 ;;
-            3) 
-                connectDB
-                break
+            DELETE)
+                if [[ -z "$currentDB" ]]; then
+                    echo "No database selected. Use 'USE databaseName;' to select a database."
+                    continue
+                fi
+                handleDelete "$query"
                 ;;
-            4)
-                dropDB
-                break
+            UPDATE)
+                if [[ -z "$currentDB" ]]; then
+                    echo "No database selected. Use 'USE databaseName;' to select a database."
+                    continue
+                fi
+                handleUpdate "$query"
                 ;;
-            5)
-                exit
+            USE)
+                handleUse "$query"
                 ;;
             *)
                 clear
-                echo "Enter a number from 1 to 5 to continue"
-                break
+                echo "Invalid or unsupported SQL command."
+                echo "------AVAILABLE SQL COMMANDS------"
+                echo "------SELECT------"
+                echo "------INSERT------"
+                echo "------UPDATE------"
+                echo "------DELETE------"
+                echo "------DROP------"
                 ;;
-            esac
-        done   
+        esac
     done
+    set +f 
 }
-
-function printTableMenu(){
-    
-    while true; do
-    echo ""
-    echo "Selected Database : $selectedDB"
-    echo ""
-    echo "Operations Menu:"
-    PS3="Enter a valid number to proceed: "
-        select option in "${tableOptions[@]}"
-        do 
-            case $REPLY in 
-            1)
-                createTable 
-                break
-                ;;
-            2)
-                insertInTable
-                break
-                ;;
-            3)
-                updateInTable
-                break
-                ;;
-            4)
-                deleteInTable
-                break
-                ;;
-            5)
-                showTableData
-                break
-                ;;
-            6)
-                listTables 
-                break
-                ;;
-            7)
-                dropTable
-                break
-               ;;
-            8)
-                clear
-                return
-                ;;
-            *)
-                echo Enter a number from 1 to 8 to continue
-                break
-                ;;
-            esac
-        done   
-    done
-}
-
 initialize_application
-print_DBmenu
-
-
+main
