@@ -8,7 +8,7 @@ source ./dbms-select.sh
 source ./dbms-delete.sh
 
 # current selected database
-currentDB="seif"
+currentDB=""
 # current base directory for databases
 baseDir="./Databases"
 
