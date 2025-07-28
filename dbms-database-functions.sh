@@ -121,7 +121,14 @@ function handleQuery() {
                 echo "No database selected. Use 'USE databaseName;' to select a database."
                 return
             fi
-            handleUpdate "$query"
+                if [[ "$query" =~ [Ww][Hh][Ee][Rr][Ee] ]]; then
+             
+                handleUpdateCondition "$query"
+            else
+               
+                handleUpdate "$query"
+            fi
+    
             ;;
         USE)
             # USE command doesn't require existing database selection

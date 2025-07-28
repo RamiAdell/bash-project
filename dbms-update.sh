@@ -15,9 +15,14 @@ function handleUpdate() {
         local setColumn="${BASH_REMATCH[4]}"
         local setValue="${BASH_REMATCH[5]}"
         
+
+
         # Clean quotes from values
         setValue="${setValue//\"/}"
         setValue="${setValue//\'/}"
+        
+        local encodedSetValue
+        encodedSetValue=$(encodeString "$setValue")
         
         local tablePath="$baseDir/$currentDB/$tableName"
         local metaPath="$baseDir/$currentDB/.$tableName-metadata"
@@ -86,7 +91,7 @@ function handleUpdate() {
         fi
         
         # Update all rows
-        awk -F: -v OFS=':' -v setCol="$setColIndex" -v setVal="$setValue" '
+        awk -F: -v OFS=':' -v setCol="$setColIndex" -v setVal="$encodedSetValue" '
             { $setCol = setVal; print }
         ' "$tablePath" > "${tablePath}.tmp" && mv "${tablePath}.tmp" "$tablePath"
         
@@ -105,7 +110,7 @@ function handleUpdate() {
 }
 
 function handleUpdateCondition() {
-    
+    clear
     local updateQuery="$1"
     echo $updateQuery
 
@@ -117,15 +122,22 @@ function handleUpdateCondition() {
         local tableName="${BASH_REMATCH[2]}"
         local setColumn="${BASH_REMATCH[4]}"
         local setValue="${BASH_REMATCH[5]}"
-        local whereColumn="${BASH_REMATCH[7]}"
-        local whereValue="${BASH_REMATCH[8]}"
-        
+        local whereColumn="${BASH_REMATCH[10]}"
+        local whereValue="${BASH_REMATCH[11]}"
+
         # Clean quotes from values
         setValue="${setValue//\"/}"
         setValue="${setValue//\'/}"
         whereValue="${whereValue//\"/}"
         whereValue="${whereValue//\'/}"
         
+
+
+        local encodedSetValue
+        encodedSetValue=$(encodeString "$setValue")
+        local encodedWhereValue
+        encodedWhereValue=$(encodeString "$whereValue")
+
         local tablePath="$baseDir/$currentDB/$tableName"
         local metaPath="$baseDir/$currentDB/.$tableName-metadata"
         
@@ -184,7 +196,7 @@ function handleUpdateCondition() {
             return
         fi
         
-        local matchingRows=$(awk -F: -v col="$whereColIndex" -v val="$whereValue" '$col == val {print NR}' "$tablePath")
+        local matchingRows=$(awk -F: -v col="$whereColIndex" -v val="$encodedWhereValue" '$col == val {print NR}' "$tablePath")
 
         if [[ -z "$matchingRows" ]]; then
             echo "No rows match condition: $whereColumn = $whereValue"
@@ -212,8 +224,8 @@ function handleUpdateCondition() {
                 return
             fi
         fi
-        
-        awk -F: -v OFS=':' -v setCol="$setColIndex" -v setVal="$setValue" -v whereCol="$whereColIndex" -v whereVal="$whereValue" '
+
+        awk -F: -v OFS=':' -v setCol="$setColIndex" -v setVal="$encodedSetValue" -v whereCol="$whereColIndex" -v whereVal="$encodedWhereValue" '
             $whereCol == whereVal { $setCol = setVal }
             { print }
         ' "$tablePath" > "${tablePath}.tmp" 

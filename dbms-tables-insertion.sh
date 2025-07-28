@@ -469,7 +469,8 @@ updateInTable(){
 
         for ((i=0; i<${#columnArray[@]}; i++))
         do
-            echo "$((i+1)). ${columnArray[i]} (current: ${currentValues[i]})"
+            decodedValue=$(echo "${currentValues[i]}" | base64 --decode)
+            echo "$((i+1)). ${columnArray[i]} (currentt: $decodedValue)"
         done
 
         echo ""
