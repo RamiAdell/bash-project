@@ -52,6 +52,7 @@ function checkPrimaryKeyDuplicate() {
     fi
     
     if [[ -n "$duplicateRows" ]]; then
+        pkValue=$(decodeString "$pkValue")
         echo "Primary key violation: Value '$pkValue' already exists in column '$pkColumn'"
         return 1
     fi
@@ -88,6 +89,34 @@ function encodeString() {
 function decodeString() {
     echo "$1" | base64 --decode
 }
+printDecodedFile() {
+    local filePath="$1"
+    while IFS= read -r line; do
+        # Separate line number and data
+        rowNum="${line%%:*}"            # Gets part before the first colon
+        encodedData="${line#*: }"       # Gets everything after "rowNum: "
+
+        # Split encoded data into fields
+        IFS=':' read -ra fields <<< "$encodedData"
+
+        for i in "${!fields[@]}"; do
+            decoded=$(echo "${fields[$i]}" | base64 --decode 2>/dev/null)
+            # Add quotes around string/email values (optional logic, adjust if needed)
+            if [[ "$decoded" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+                fields[$i]="\"$decoded\""
+            elif [[ "$decoded" =~ ^[a-zA-Z]+$ ]]; then
+                fields[$i]="\"$decoded\""
+            else
+                fields[$i]="$decoded"
+            fi
+        done
+
+        # Reconstruct line with row number
+        (IFS=':'; echo "$rowNum: ${fields[*]}")
+    done < "$filePath"
+}
+
+
 # Export currentDB if set, but do not initialize here to avoid overwriting
 export currentDB
 export baseDir

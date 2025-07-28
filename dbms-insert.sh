@@ -110,6 +110,7 @@ function handleInsert() {
                     # Check if this is a primary key column
                     for pk in "${primaryKeys[@]}"; do
                         if [[ "$pk" == "$colName" ]]; then
+                            colValue=$(encodeString "$colValue")
                             if ! checkPrimaryKeyDuplicate "$tablePath" "$metaPath" "$colName" "$colValue"; then
                                 return
                             fi

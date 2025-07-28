@@ -89,14 +89,14 @@ insertInTable() {
 
         while true; do
             read -p "Enter $colName ($colType): " value
-
+            colValue=$(encodeString "$value")
             if ! validateDataType "$value" "$colType"; then
                 continue
             fi
 
             if [[ $j -eq $pkIndex && -f "$tmpDataFile" ]]; then
                 # search if existing
-                existing=$(cut -d':' -f$((pkIndex + 1)) "$tmpDataFile" | grep -x "$value")
+                existing=$(cut -d':' -f$((pkIndex + 1)) "$tmpDataFile" | grep -x "$colValue")
                 if [[ -n "$existing" ]]; then
                     echo "Primary key '$value' already exists please enter a unique value."
                     continue
@@ -105,7 +105,7 @@ insertInTable() {
 
             break
         done
-        colValue=$(encodeString "$value")
+        
         if [[ $j -eq 0 ]]; then
             rowToAdd="$colValue"
         else

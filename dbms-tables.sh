@@ -405,8 +405,13 @@ function deleteFromTable() {
         read -p "Enter the value to match for deletion: " targetValue
 
         # Find all matching rows and their line numbers
-        matchingRows=$(awk -F: -v col="$colIndex" -v val="$targetValue" '$col == val {print NR ": " $0}' "$tablePath")
+        local targetEncoded=$(echo -n "$targetValue" | base64)
+        matchingRows=$(awk -F: -v col="$colIndex" -v val="$targetEncoded" '$col == val {print NR ": " $0}' "$tablePath")
         matchingCount=$(echo "$matchingRows" | grep -c '^')
+        
+        deleteTempFile=$(mktemp)
+        echo "$matchingRows" > "$deleteTempFile"
+        
 
         # Check if any matching rows found
         if [[ -z "$matchingRows" ]]; then
@@ -417,8 +422,9 @@ function deleteFromTable() {
 
         clear 
         echo -e "\nMatching rows:"
-        echo "$matchingRows"
-
+        printDecodedFile "$deleteTempFile" "$metaPath"
+        
+        rm "$deleteTempFile"
         # Handle deletion based on flag
         if [[ $deleteFlag -eq 1 ]]; then
             # Delete all matching rows
