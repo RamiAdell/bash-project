@@ -1,7 +1,7 @@
 #!/bin/bash
 
 source ./common.sh
-
+# Function to print specific columns from a table file based on column selection
 # Function to print specific columns from a table file based on column selection
 function printSelectedColumns(){
     local filePath="$1"
@@ -23,38 +23,44 @@ function printSelectedColumns(){
     IFS=$'\n' sortedColIndexes=($(sort -n <<<"${colIndexes[*]}"))
     unset IFS
 
-    # Build AWK command dynamically to extract and display selected columns
-    awkCmd='BEGIN {FS=":"; OFS=":"} 
-    {
-        # Only print if one of the selected fields is non-empty
-        if ('
-    
-    # Add condition to check if any selected field has data (not empty)
-    for i in "${!sortedColIndexes[@]}"; do
-        idx=${sortedColIndexes[$i]}
-        awkCmd+="\$$idx != \"\""  # Check if field is not empty
-        if (( i < ${#sortedColIndexes[@]} - 1 )); then
-            awkCmd+=" || "        # OR condition between fields
+    # Read the table file line by line and process each row
+    while IFS=':' read -ra fields; do
+        # Check if any selected field has data (not empty)
+        local hasData=false
+        for idx in "${sortedColIndexes[@]}"; do
+            if [[ -n "${fields[$((idx-1))]}" ]]; then
+                hasData=true
+                break
+            fi
+        done
+        
+        # Only process rows that have data in selected columns
+        if [[ "$hasData" == true ]]; then
+            local output=""
+            for i in "${!sortedColIndexes[@]}"; do
+                idx=${sortedColIndexes[$i]}
+                # Decode the field value
+                decodedValue=$(echo "${fields[$((idx-1))]}" | base64 --decode 2>/dev/null)
+                
+                # Get the column type from metadata
+                colType=$(sed -n "${idx}p" "$metaFile" | cut -d: -f2)
+                
+                # Add quotes for string and email types
+                if [[ "$colType" == "string" || "$colType" == "email" ]]; then
+                    output+="\"$decodedValue\""
+                else
+                    output+="$decodedValue"
+                fi
+                
+                # Add separator if not the last column
+                if (( i < ${#sortedColIndexes[@]} - 1 )); then
+                    output+=":"
+                fi
+            done
+            echo "$output"
         fi
-    done
-    awkCmd+=') {'
-
-    # Add print statements for each selected column
-    for i in "${!sortedColIndexes[@]}"; do
-        idx=${sortedColIndexes[$i]}
-        awkCmd+="printf \"%s\", \"\$(echo \$$idx | base64 --decode)\";" # Print field value
-        if (( i < ${#sortedColIndexes[@]} - 1 )); then
-            awkCmd+=" printf OFS; "       # Add field separator between columns
-        fi
-    done
-
-    # Complete the AWK command
-    awkCmd+='print "" } }'
-
-    # Execute the dynamically built AWK command on the table file
-    awk "$awkCmd" "$filePath"
+    done < "$filePath"
 }
-
 # Main function to handle SELECT SQL queries
 function handleSelect() {
     local selectQuery="$1"    # The complete SELECT query string
@@ -138,9 +144,21 @@ function handleSelect() {
 
                 if [[ $found -eq 1 ]] 
                 then
+                    local encodedWhereVal=$(encodeString "$whereValue")
+                    local tempMatches=$(mktemp)
                     # Find column index and filter rows matching WHERE condition
                     local colIndex=$(grep -n "^$whereColumn:" "$metaPath" | cut -d: -f1)
-                    awk -F':' -v val="$whereValue" -v col="$colIndex" '$col == val {print $0}' "$tablePath"
+                    awk -F':' -v val="$encodedWhereVal" -v col="$colIndex" '$col == val {print $0}' "$tablePath" > "$tempMatches"
+                    # If no matches
+                    if [[ ! -s "$tempMatches" ]]; then
+                        echo "No rows match the condition WHERE $whereColumn = $whereValue"
+                        rm -f "$tempMatches"
+                        return
+                    fi
+
+                    echo -e "\nMatching rows:"
+                    printDecodedFile "$tempMatches" "$metaPath"
+                    rm -f "$tempMatches"
                 else
                     echo "Column $whereColumn not found in the table $tableName."
                     return 
@@ -154,25 +172,7 @@ function handleSelect() {
                     echo "Table is empty."
                     echo ""
                 else
-                    # Read column data types from metadata into an array
-                    mapfile -t colTypes < <(cut -d: -f2 "$metaPath")
-
-                    # Read and process each line in the table
-                    while IFS= read -r line; do
-                        IFS=':' read -ra fields <<< "$line"
-                        for i in "${!fields[@]}"; do
-                            decoded=$(echo "${fields[$i]}" | base64 --decode)
-                            case "${colTypes[$i]}" in
-                                string|email)
-                                    fields[$i]="\"$decoded\""
-                                    ;;
-                                *)
-                                    fields[$i]="$decoded"
-                                    ;;
-                            esac
-                        done
-                        (IFS=:; echo "${fields[*]}")
-                    done < "$tablePath"
+                    printDecodedFile "$tablePath" "$metaPath"
                     echo ""
 
                 fi 
@@ -189,16 +189,19 @@ function handleSelect() {
                     selectTmpFile=$(mktemp)
                     # Find WHERE column index and filter matching rows
                     local colIndex=$(grep -n "^$whereColumn:" "$metaPath" | cut -d: -f1)
-                    awk -F':' -v val="$whereValue" -v col="$colIndex" '$col == val {print $0}' "$tablePath" >> "$selectTmpFile"
+                    local encodedWhereVal=$(encodeString "$whereValue")
+                    awk -F':' -v val="$encodedWhereVal" -v col="$colIndex" '$col == val {print $0}' "$tablePath" >> "$selectTmpFile"
                     
                     # Check if any rows matched the WHERE condition
-                    if [[ ! -s $selectTmpFile  ]]
+                    if [[ ! -s $selectTmpFile || $(grep -cve '^\s*$' "$selectTmpFile") -eq 0  ]]
                     then
                         echo "There are no matches."
+                        rm -f "$selectTmpFile"
                         return
                     fi 
                     # Display selected columns from filtered results
                     printSelectedColumns "$selectTmpFile" "$metaPath" "${columnPart[@]}" 
+                    rm -f "$selectTmpFile"
                 else 
                     echo There is an error with the provided columns name.
                 fi 
@@ -212,7 +215,7 @@ function handleSelect() {
                     # Display selected columns from entire table
                     printSelectedColumns "$tablePath" "$metaPath" "${columnPart[@]}" 
                     echo ""
-                else 
+                else    
                     echo There is an error with the provided columns name.
                 fi 
             fi 

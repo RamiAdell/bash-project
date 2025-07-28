@@ -89,7 +89,7 @@ function encodeString() {
 function decodeString() {
     echo "$1" | base64 --decode
 }
-printDecodedFile() {
+printDecodedFileN() {
     local filePath="$1"
     while IFS= read -r line; do
         # Separate line number and data
@@ -116,6 +116,29 @@ printDecodedFile() {
     done < "$filePath"
 }
 
+printDecodedFile() {
+    local filePath="$1"
+    local metaPath="$2"
+    mapfile -t colTypes < <(cut -d: -f2 "$metaPath")
+
+    # Read and process each line in the table
+    while IFS= read -r line; do
+        IFS=':' read -ra fields <<< "$line"
+        for i in "${!fields[@]}"; do
+            decoded=$(echo "${fields[$i]}" | base64 --decode)
+            case "${colTypes[$i]}" in
+                string|email)
+                    fields[$i]="\"$decoded\""
+                    ;;
+                *)
+                    fields[$i]="$decoded"
+                    ;;
+            esac
+        done
+        (IFS=:; echo "${fields[*]}")
+    done < "$filePath"
+    echo ""
+}
 
 # Export currentDB if set, but do not initialize here to avoid overwriting
 export currentDB
