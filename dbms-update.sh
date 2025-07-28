@@ -82,12 +82,10 @@ function handleUpdate() {
                 break
             fi
         done
-        
+
         if [[ $isPrimaryKey -eq 1 ]]; then
-            # Check for primary key duplicates across all rows
-            if ! checkPrimaryKeyDuplicate "$tablePath" "$metaPath" "$setColumn" "$setValue"; then
-                return
-            fi
+            echo "Cannot update primary key column '$setColumn' for all rows without WHERE clause"
+            return
         fi
         
         # Update all rows
