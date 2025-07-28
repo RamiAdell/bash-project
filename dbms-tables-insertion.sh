@@ -285,7 +285,7 @@ updateInTable(){
     echo "2. Update multiple rows by condition"
     echo ""
 
-while true; do
+ while true; do
         read -p "Select update mode (0 to go back): " updateMode
         if [[ "$updateMode" == "1" ]]; then
         clear
@@ -320,6 +320,7 @@ while true; do
             
             echo ""
             read -p "Enter value to find in column '$filterColumn': " filterValue
+            encodedFilterValue=$(encodeString "$filterValue")
             clear
 
             # Find matching rows
@@ -327,7 +328,7 @@ while true; do
             rowCount=0
             while IFS=':' read -r -a row; do
                 rowCount=$((rowCount + 1))
-                if [ "${row[filterColIndex]}" == "$filterValue" ]; then
+                if [ "${row[filterColIndex]}" == "$encodedFilterValue" ]; then
                     matchingRows+=("$rowCount")
                 fi
             done < "$tmpDataFile"
@@ -367,10 +368,12 @@ while true; do
                     echo "Invalid value for $updateColumn ($updateType). Please try again."
                     continue
                 fi
-                
+
+                encodedNewValue=$(encodeString "$newValue")
+
                 # check for primary key uniqueness if updating primary key
                 if [ "$updateColIndex" -eq "$pkIndex" ]; then
-                    existing=$(awk -F':' -v pk="$newValue" -v pkCol="$((pkIndex + 1))" '$pkCol == pk {print NR}' "$tmpDataFile")
+                    existing=$(awk -F':' -v pk="$encodedNewValue" -v pkCol="$((pkIndex + 1))" '$pkCol == pk {print NR}' "$tmpDataFile")
                     if [ -n "$existing" ]; then
                         echo "Primary key '$newValue' already exists. Cannot update multiple rows to same primary key value."
                         continue
@@ -389,7 +392,7 @@ while true; do
                 for rowNum in "${matchingRows[@]}"; do
                     currentRow=$(sed -n "${rowNum}p" "$tmpDataFile")
                     IFS=':' read -r -a currentValues <<< "$currentRow"
-                    currentValues[updateColIndex]="$newValue"
+                    currentValues[updateColIndex]="$encodedNewValue"
                     
                     newRow="${currentValues[0]}"
                     for ((j=1; j<${#currentValues[@]}; j++)); do
@@ -403,27 +406,9 @@ while true; do
                     clear
                     echo "Updated ${#matchingRows[@]} rows successfully!"
                     echo ""
-                    
-                    # Show updated table
-                    echo "Updated records in '$selectedTable':"
-                    echo "=================================="
-                    
-                    # Show column headers
-                    header="${columnArray[0]}"
-                    for ((i=1; i<${#columnArray[@]}; i++)); do
-                        header+=" | ${columnArray[i]}"
-                    done
-                    echo "$header"
-                    echo "--------------------------------"
-                    
-                    # Show data rows
-                    while IFS=':' read -r -a row; do
-                        line="${row[0]}"
-                        for ((i=1; i<${#row[@]}; i++)); do
-                            line+=" | ${row[i]}"
-                        done
-                        echo "$line"
-                    done < "$dataFile"
+
+
+
                 else
                     echo "Failed to save changes."
                     rm -f "$tmpDataFile"
@@ -441,11 +426,11 @@ while true; do
     while true; do
         
         read -p "Enter the $primaryKeyCol value of the row to update: " pkValue
-        
+        encodedPkValue=$(encodeString "$pkValue")
         # check if the primary key exists in the table
         if [ -f "$tmpDataFile" ]
         then
-            rowNumber=$(awk -F':' -v pk="$pkValue" -v pkCol="$((pkIndex + 1))" '$pkCol == pk {print NR}' "$tmpDataFile")
+            rowNumber=$(awk -F':' -v pk="$encodedPkValue" -v pkCol="$((pkIndex + 1))" '$pkCol == pk {print NR}' "$tmpDataFile")
             if [ -n "$rowNumber" ]
             then
             # get the current row data
@@ -537,17 +522,19 @@ while true; do
                     echo "Invalid value for $selectedColumn. Please try again."
                     continue
                 fi
+
+                encodedNewValue=$(encodeString "$newValue")
                 
-                if [ "$colIndex" -eq "$pkIndex" ] && [ "$newValue" != "${currentValues[colIndex]}" ]
+                if [ "$colIndex" -eq "$pkIndex" ] && [ "$encodedNewValue" != "${currentValues[colIndex]}" ]
                 then
-                existing=$(awk -F':' -v pk="$newValue" -v pkCol="$((pkIndex + 1))" '$pkCol == pk {print NR}' "$tmpDataFile")
+                existing=$(awk -F':' -v pk="$encodedNewValue" -v pkCol="$((pkIndex + 1))" '$pkCol == pk {print NR}' "$tmpDataFile")
                 if [ -n "$existing" ]; then
                     echo "Primary key '$newValue' already exists. enter a unique value."
                     continue
                 fi
                 fi
                 
-                currentValues[colIndex]="$newValue"
+                currentValues[colIndex]="$encodedNewValue"
                 newRow="${currentValues[0]}"
                 for ((j=1; j<${#currentValues[@]}; j++)); do
                     newRow="$newRow:${currentValues[j]}"
