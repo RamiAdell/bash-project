@@ -79,7 +79,8 @@ function handleDelete() {
 
             # Find all rows that match the WHERE condition
             # AWK returns line numbers of matching rows
-            local matchingRows=$(awk -F: -v col="$colIndex" -v val="$targetValue" '$col == val {print NR}' "$tablePath")
+            local targetEncoded=$(echo -n "$targetValue" | base64)
+            local matchingRows=$(awk -F: -v col="$colIndex" -v val="$targetEncoded" '$col == val {print NR}' "$tablePath")
             
             # Check if any rows match the condition
             if [[ -z "$matchingRows" ]]; then

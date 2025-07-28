@@ -1,3 +1,4 @@
+
 #!/bin/bash
 source ./common.sh
 
@@ -104,11 +105,11 @@ insertInTable() {
 
             break
         done
-
+        colValue=$(encodeString "$value")
         if [[ $j -eq 0 ]]; then
-            rowToAdd="$value"
+            rowToAdd="$colValue"
         else
-            rowToAdd="$rowToAdd:$value"
+            rowToAdd="$rowToAdd:$colValue"
         fi
     done
 
@@ -181,12 +182,21 @@ showTable(){
 
     # Show data rows
     if [ -f "$tmpDataFile" ]; then
-        while IFS=':' read -r -a row; do
-            line="${row[0]}"
-            for ((i=1; i<${#row[@]}; i++)); do
-                line+=" | ${row[i]}"
+        mapfile -t colTypes < <(cut -d: -f2 "$metaDataFile")
+        while IFS= read -r line; do
+            IFS=':' read -ra fields <<< "$line"
+            for i in "${!fields[@]}"; do
+                decoded=$(echo "${fields[$i]}" | base64 --decode)
+                case "${colTypes[$i]}" in
+                    string|email)
+                        fields[$i]="\"$decoded\""
+                        ;;
+                    *)
+                        fields[$i]="$decoded"
+                        ;;
+                esac
             done
-            echo "$line"
+            (IFS=:; echo "${fields[*]}")
         done < "$tmpDataFile"
     else
         echo "No data found in table."
@@ -203,7 +213,7 @@ updateInTable(){
 
     tableList=()
     tableCount=0
-
+    echo $currentDB
     if [ -d "$baseDir/$currentDB" ]; then
         echo "Available Tables:"
         for table in "$baseDir/$currentDB/"*; do
@@ -214,8 +224,6 @@ updateInTable(){
                 tableList+=("$tableName")
             fi
         done
-        echo ""
-        echo "to go back to table operations menu, enter 0"
 
         if [ ${#tableList[@]} -eq 0 ]; then
             echo "No tables found"
@@ -226,10 +234,6 @@ updateInTable(){
     
             echo ""
             read -p "Select table by number: " tableChoice
-            if [[ "$tableChoice" -eq 0 ]]; then
-                clear
-                return
-            fi
             if [[ "$tableChoice" =~ ^[0-9]+$ ]] && [ "$tableChoice" -ge 1 ] && [ "$tableChoice" -le "${#tableList[@]}" ]; then
                 index=$((tableChoice-1))
                 selectedTable="${tableList[$index]}"
@@ -281,7 +285,7 @@ updateInTable(){
     echo "2. Update multiple rows by condition"
     echo ""
 
-    while true; do
+while true; do
         read -p "Select update mode (0 to go back): " updateMode
         if [[ "$updateMode" == "1" ]]; then
         clear
@@ -528,7 +532,7 @@ updateInTable(){
                     break
                 fi
                 
-                if ! validateDataType "$newValue" "$selectedType" 
+                if [ ! validateDataType "$newValue" "$selectedType" ]
                 then
                     echo "Invalid value for $selectedColumn. Please try again."
                     continue

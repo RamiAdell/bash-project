@@ -135,6 +135,7 @@ function handleInsert() {
             # Find the index of this column in the available columns
             for j in "${!availableColumns[@]}"; do
                 if [[ "${availableColumns[$j]}" == "$colName" ]]; then
+                    colValue=$(encodeString "$colValue")
                     rowData[$j]="$colValue"
                     break
                 fi

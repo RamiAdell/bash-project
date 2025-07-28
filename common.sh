@@ -79,6 +79,15 @@ function initialize_application() {
         mkdir -p "$baseDir"
     fi
 }
+# Encode a string using Base64
+function encodeString() {
+    echo -n "$1" | base64
+}
+
+# Decode a Base64 string
+function decodeString() {
+    echo "$1" | base64 --decode
+}
 # Export currentDB if set, but do not initialize here to avoid overwriting
 export currentDB
 export baseDir

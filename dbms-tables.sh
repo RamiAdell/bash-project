@@ -453,3 +453,106 @@ function deleteFromTable() {
         break 
     done
 }
+showTableData() {
+
+    clear
+    echo ""
+    echo "SHOWING DATA"
+    echo ""
+
+    tableList=()
+    tableCount=0
+
+    if [ -d "$baseDir/$currentDB" ]; then
+        echo "Available Tables:"
+        for table in "$baseDir/$currentDB/"*; do
+            if [ -f "$table" ]; then
+                tableCount=$((tableCount + 1))
+                tableName=$(basename "$table")
+                echo "$tableCount. $tableName"
+                tableList+=("$tableName")
+            fi
+        done
+        echo ""
+        echo "to go back to table operations menu, enter 0"
+
+        if [ ${#tableList[@]} -eq 0 ]; then
+            echo "No tables found"
+            return
+        fi
+
+        while true; do
+            echo ""
+            read -p "Select table by number: " tableChoice
+            if [[ "$tableChoice" -eq 0 ]]; then
+                clear
+                return
+            fi
+            if [[ "$tableChoice" =~ ^[0-9]+$ ]] && [ "$tableChoice" -ge 1 ] && [ "$tableChoice" -le "${#tableList[@]}" ]; then
+                index=$((tableChoice-1))
+                selectedTable="${tableList[$index]}"
+                metaDataFile="$baseDir/$currentDB/.$selectedTable-metadata"
+                dataFile="$baseDir/$currentDB/$selectedTable"
+                break
+            else
+                echo "Invalid selection. Try again."
+                break
+            fi
+        done
+
+    else
+        echo "Database not found"
+        return
+    fi
+
+    if [ ! -f "$dataFile" ] || [ ! -f "$metaDataFile" ]
+    then
+    echo "file missing for '$selectedTable'."
+    return
+    fi
+    clear
+    echo ""
+    echo "Rows in '$selectedTable':"
+    echo "-----------------------------"
+
+    # Read column names and types
+    columnNames=()
+    columnTypes=()
+    while IFS=':' read -r colName colType _; do
+        columnNames+=("$colName")
+        columnTypes+=("$colType")
+    done < "$metaDataFile"
+
+    headerLine="${columnNames[0]}"
+    for ((i=1; i<${#columnNames[@]}; i++)); do
+        headerLine+=" | ${columnNames[i]}"
+    done
+
+    
+    echo "$headerLine"
+    echo "-----------------------------"
+
+    # Print each row (decoded and formatted)
+    while IFS=':' read -r -a row; do
+        for ((i = 0; i < ${#row[@]}; i++)); do
+            decoded=$(echo "${row[$i]}" | base64 --decode)
+            case "${columnTypes[$i]}" in
+                string|email)
+                    value="\"$decoded\""
+                    ;;
+                *)
+                    value="$decoded"
+                    ;;
+            esac
+
+            if [[ $i -eq 0 ]]; then
+                echo -n "$value"
+            else
+                echo -n " | $value"
+            fi
+        done
+        echo ""
+    done < "$dataFile"
+
+    echo ""
+}

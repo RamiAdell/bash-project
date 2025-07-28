@@ -42,7 +42,7 @@ function printSelectedColumns(){
     # Add print statements for each selected column
     for i in "${!sortedColIndexes[@]}"; do
         idx=${sortedColIndexes[$i]}
-        awkCmd+="printf \"%s\", \$$idx;"  # Print field value
+        awkCmd+="printf \"%s\", \"\$(echo \$$idx | base64 --decode)\";" # Print field value
         if (( i < ${#sortedColIndexes[@]} - 1 )); then
             awkCmd+=" printf OFS; "       # Add field separator between columns
         fi
@@ -154,8 +154,27 @@ function handleSelect() {
                     echo "Table is empty."
                     echo ""
                 else
-                    cat $tablePath      # Display all table contents
+                    # Read column data types from metadata into an array
+                    mapfile -t colTypes < <(cut -d: -f2 "$metaPath")
+
+                    # Read and process each line in the table
+                    while IFS= read -r line; do
+                        IFS=':' read -ra fields <<< "$line"
+                        for i in "${!fields[@]}"; do
+                            decoded=$(echo "${fields[$i]}" | base64 --decode)
+                            case "${colTypes[$i]}" in
+                                string|email)
+                                    fields[$i]="\"$decoded\""
+                                    ;;
+                                *)
+                                    fields[$i]="$decoded"
+                                    ;;
+                            esac
+                        done
+                        (IFS=:; echo "${fields[*]}")
+                    done < "$tablePath"
                     echo ""
+
                 fi 
             fi
         else
