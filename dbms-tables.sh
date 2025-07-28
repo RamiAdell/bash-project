@@ -422,8 +422,8 @@ function deleteFromTable() {
 
         clear 
         echo -e "\nMatching rows:"
-        printDecodedFile "$deleteTempFile" "$metaPath"
-        
+        printDecodedFileN "$deleteTempFile" 
+
         rm "$deleteTempFile"
         # Handle deletion based on flag
         if [[ $deleteFlag -eq 1 ]]; then
