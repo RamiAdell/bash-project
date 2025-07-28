@@ -207,11 +207,12 @@ function listTablesPreProcess(){
     if [[ ${#tableNames[@]} -eq 0 ]]; then
         echo "No tables found in database $currentDB"
         echo "Exiting...."
-        return
+        return 1
     fi
 
     # Add back navigation option to the list
     tableNames+=("--Back to table operations Menu--")
+    return 0
 }
 
 # Function to drop (delete) a table from the current database
@@ -223,9 +224,13 @@ function dropTable(){
     while true
     do 
         # Get list of available tables
-        listTablesPreProcess
+        if ! listTablesPreProcess; then
+            return
+        fi
+        
         select tableName in "${tableNames[@]}"
         do
+
             # Check if user selected the back option
             if [[ "$REPLY" -eq "${#tableNames[@]}" ]]
             then
@@ -241,12 +246,16 @@ function dropTable(){
                 then
                     # Remove both table file and its metadata file
                     rm -rf "$baseDir/$currentDB/$tableName" "$baseDir/$currentDB/.${tableName}-metadata"
+                    clear
                     echo "Tabel '$tableName' deleted successfully."
+                    return 
                 else
+                    clear
                     echo "Deletion cancelled."
                 fi
                 break
             else
+                clear
                 echo "Invalid choice. Try again."
             fi
         done

@@ -196,6 +196,7 @@ function connectDB(){
                             clear
                             return
                         else
+                            clear
                             echo "Invalid selection. Please try again."
                             break
                         fi
@@ -281,7 +282,8 @@ function dropDB(){
 function printTableMenu(){
     # Define available table operations
     tableOptions=("Create Table" "Insert into Table" "Update Table" "Delete from Table" "Show Table Data" "List Tables" "Drop Table" "Back to Main Menu")
-    
+    inTableMenu=1
+    export inTableMenu
     while true; do
         
         echo ""
@@ -331,6 +333,8 @@ function printTableMenu(){
                    ;;
                 8)
                     clear
+                    inTableMenu=0
+                    export inTableMenu
                     return         # Go back to main menu
                     ;;
                 *)
@@ -341,4 +345,5 @@ function printTableMenu(){
             esac
         done   
     done
+    
 }

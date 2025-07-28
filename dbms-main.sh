@@ -11,6 +11,9 @@ source ./dbms-database-functions.sh
 currentDB=""
 export currentDB
 
+inTableMenu=0
+export inTableMenu
+
 # current base directory for databases
 baseDir="./Databases"
 export baseDir

@@ -28,7 +28,11 @@ function handleUse(){
                 # Export variable to make it available to other scripts/functions
                 export currentDB
                 # Navigate to table operations menu for the selected database
-                printTableMenu 
+                if [[ $inTableMenu -eq 0 ]]; then
+                    printTableMenu
+                else
+                    echo ""
+                fi  
 
             else
                 # Database doesn't exist - inform user

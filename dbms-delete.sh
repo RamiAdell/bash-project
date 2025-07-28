@@ -54,6 +54,11 @@ function handleDelete() {
             fi
         else
             # Handle DELETE with WHERE clause (conditional deletion)
+            if [[ ! -s $tablePath || $(grep -cve '^\s*$' "$tablePath") -eq 0 ]]
+            then 
+                echo "Table is already empty."
+                return
+            fi
             
             # Validate WHERE condition syntax (column=value format)
             if [[ ! "$condition" =~ ^([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=[[:space:]]*(.+)$ ]] 

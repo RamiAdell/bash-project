@@ -3,6 +3,7 @@
 source ./common.sh
 
 insertInTable() {
+    set +f
     clear
     echo "INSERT DATA"
     echo ""

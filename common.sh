@@ -143,3 +143,4 @@ printDecodedFile() {
 # Export currentDB if set, but do not initialize here to avoid overwriting
 export currentDB
 export baseDir
+export inTableMenu
